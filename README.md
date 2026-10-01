@@ -1,0 +1,128 @@
+# [Nazwa] – Live · MultiChannel · Chat
+
+Modularny monolit w Ruby on Rails 8.1 z frontendem Inertia.js + React + TypeScript.
+Jeden panel, trzy moduły sprzedawane osobno lub razem jako pakiet **ONE**.
+
+| Warstwa | Technologia |
+| --- | --- |
+| Backend | Ruby 3.4, Rails 8.1, PostgreSQL 16 |
+| Frontend | Inertia.js 3 (React 19), TypeScript, Vite, Tailwind CSS 4, shadcn/ui na Base UI |
+| Moduły | packs-rails + Packwerk (granice sprawdzane w CI) |
+| Joby, cache, WebSockety | Solid Queue, Solid Cache, Solid Cable (na produkcji; w dev adaptery w pamięci) |
+| Testy | RSpec, FactoryBot, helpery Inertia |
+| Deploy | Docker + Kamal 2 |
+
+## Pierwsze uruchomienie
+
+Wymagania: Ruby 3.4.7, Node.js 22, PostgreSQL 16 działający lokalnie.
+
+```bash
+bundle install          # tworzy Gemfile.lock
+bin/setup --skip-server # npm install, bazy danych, migracje
+bin/rails db:seed       # konta demo
+bin/dev                 # Rails (3000) + Vite (3036)
+```
+
+Panel: http://localhost:3000. Konta demo (hasło `password123`):
+
+| E-mail | Pakiet | Co zobaczysz |
+| --- | --- | --- |
+| one@example.com | ONE | Wszystkie moduły i panel zamówień |
+| live@example.com | Live (trial 14 dni) | Live + panel zamówień, Chat i MultiChannel zablokowane |
+| chat@example.com | Chat | Tylko Chat, bez panelu zamówień |
+
+Seed wypisuje też token API dla `one@example.com`.
+
+Klucz do sekretów produkcyjnych utwórz poleceniem `bin/rails credentials:edit` (powstaną `config/credentials.yml.enc` i `config/master.key`; klucza nie commituj).
+
+## Struktura
+
+```
+app/
+  frontend/            # React: strony, layouty, komponenty shadcn/ui
+    entrypoints/       # inertia.tsx, application.css (motyw)
+    pages/             # nazwy stron = nazwy komponentów Inertia, np. "live/index"
+    components/ui/     # shadcn/ui (Base UI) – kod w repo, edytuj śmiało
+    lib/modules.ts     # opis modułów (menu, pulpit, ekrany „Dokup”)
+  views/layouts/       # jeden layout HTML z tagami Vite
+packs/
+  core/
+    platform/          # klasy bazowe: ApplicationRecord, ApplicationController…
+    accounts/          # konta (tenant), użytkownicy, sesje, tokeny API
+    licensing/         # licencje modułów, pakiet ONE, bramka dostępu
+    panel/             # InertiaController (wspólne propsy), logowanie, pulpit
+    orders/            # panel obsługi zamówień (Live lub MultiChannel)
+    api/               # publiczne REST API /api/v1
+    catalog/ inventory/ customers/ payments/ shipping/ invoicing/ integrations/
+  live/                # [Nazwa] Live
+  multichannel/        # [Nazwa] MultiChannel
+  chat/                # [Nazwa] Chat
+```
+
+Każdy pakiet ma `package.yml` z listą zależności. Kod dostępny dla innych pakietów leży w `app/public/`; reszta jest prywatna (`enforce_privacy`). Pakiety modułów zależą tylko od Core, nigdy od siebie nawzajem.
+
+## Licencje modułów
+
+Jedno źródło prawdy: `Licensing` (`packs/core/licensing/app/public/licensing.rb`).
+
+```ruby
+Licensing.enabled?(account, :live)    # czy moduł jest aktywny
+Licensing.orders_panel?(account)       # panel zamówień = Live lub MultiChannel
+Licensing.grant!(account, :chat, trial_days: 14)
+Licensing.grant_bundle!(account, :one) # trzy licencje naraz
+```
+
+Kontrolery modułów deklarują wymaganą licencję; bez niej użytkownik widzi ekran z ofertą modułu:
+
+```ruby
+module Live
+  class BaseController < InertiaController
+    requires_module :live
+  end
+end
+```
+
+Frontend dostaje stan licencji we wspólnych propsach (`modules.enabled`, `modules.ordersPanel`, `modules.bundle`) i na tej podstawie buduje menu.
+
+## Dodawanie funkcji do modułu
+
+1. Model i logika w pakiecie modułu, np. `packs/live/app/models/live/session.rb`.
+2. Jeśli inny pakiet ma z tego korzystać – metoda w `packs/live/app/public/live.rb`.
+3. Kontroler dziedziczy z `Live::BaseController`, trasa w `packs/live/config/routes/live.rb`.
+4. Strona React w `app/frontend/pages/live/…tsx`, renderowana przez `render inertia: "live/…"`.
+5. Testy obok kodu: `packs/live/spec/…`.
+
+Nowe komponenty shadcn/ui: konfiguracja jest w `components.json` (styl `base-nova`), więc `npx shadcn@latest add dialog` doda komponent w wersji Base UI do `app/frontend/components/ui`.
+
+## REST API
+
+```bash
+curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/account
+curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/orders
+```
+
+Tokeny mają zakresy (np. `orders:read`); endpointy modułów sprawdzają te same licencje co panel.
+
+## Testy i jakość
+
+```bash
+bundle exec rspec           # testy (w tym bramka licencji i API)
+bin/packwerk validate       # poprawność grafu pakietów
+bin/packwerk check          # odwołania między pakietami
+npm run check               # TypeScript
+bin/rubocop                 # styl Ruby
+bin/ci                      # wszystko naraz
+```
+
+Te same kroki uruchamia GitHub Actions (`.github/workflows/ci.yml`).
+
+## Deploy
+
+`config/deploy.yml` (Kamal) zakłada serwer w UE i PostgreSQL jako akcesorium. Uzupełnij adres serwera, domenę i rejestr obrazów, ustaw sekrety w `.kamal/secrets`, potem:
+
+```bash
+bin/kamal setup   # pierwszy raz
+bin/kamal deploy
+```
+
+Nazwę produktu wyświetlaną w panelu ustawia zmienna `APP_NAME` (domyślnie „Nazwa”).

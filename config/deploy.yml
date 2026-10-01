@@ -1,0 +1,67 @@
+# Deploy przez Kamal: `bin/kamal setup` (pierwszy raz), potem `bin/kamal deploy`.
+# Serwery w UE (RODO), np. Hetzner lub OVH. Uzupełnij adresy, domenę i rejestr.
+service: one_commerce
+image: your-user/one_commerce
+
+servers:
+  web:
+    - 192.0.2.10
+  # Osobna maszyna na joby, gdy ruch z live'ów i synchronizacji urośnie:
+  # job:
+  #   hosts:
+  #     - 192.0.2.11
+  #   cmd: bin/jobs
+
+proxy:
+  ssl: true
+  host: app.example.com
+
+registry:
+  server: ghcr.io
+  username: your-user
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  secret:
+    - RAILS_MASTER_KEY
+    - ONE_COMMERCE_DATABASE_PASSWORD
+  clear:
+    APP_NAME: Nazwa
+    DB_HOST: one_commerce-db
+    # Solid Queue w procesie Puma na start; przy większym ruchu przenieś do roli `job`.
+    SOLID_QUEUE_IN_PUMA: true
+    # WEB_CONCURRENCY: 2
+    # JOB_CONCURRENCY: 3
+
+aliases:
+  console: app exec --interactive --reuse "bin/rails console"
+  shell: app exec --interactive --reuse "bash"
+  logs: app logs -f
+  dbc: app exec --interactive --reuse "bin/rails dbconsole --include-password"
+
+volumes:
+  - "one_commerce_storage:/rails/storage"
+
+# Zachowuje zasoby Vite poprzedniej wersji podczas wdrożenia.
+asset_path: /rails/public/vite
+
+builder:
+  arch: amd64
+
+# PostgreSQL jako akcesorium Kamal. Na produkcji rozważ bazę zarządzaną (backupy, repliki).
+accessories:
+  db:
+    image: postgres:16
+    host: 192.0.2.10
+    port: "127.0.0.1:5432:5432"
+    env:
+      clear:
+        POSTGRES_USER: one_commerce
+        POSTGRES_DB: one_commerce_production
+      secret:
+        - POSTGRES_PASSWORD
+    files:
+      - db/production-init.sql:/docker-entrypoint-initdb.d/setup.sql
+    directories:
+      - data:/var/lib/postgresql/data
