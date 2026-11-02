@@ -5,7 +5,7 @@ image: your-user/one_commerce
 
 servers:
   web:
-    - 192.0.2.10
+    - <%= ENV.fetch("DEPLOY_HOST") %>
   # Osobna maszyna na joby, gdy ruch z live'ów i synchronizacji urośnie:
   # job:
   #   hosts:
@@ -53,7 +53,7 @@ builder:
 accessories:
   db:
     image: postgres:16
-    host: 192.0.2.10
+    host: <%= ENV.fetch("DEPLOY_HOST") %>
     port: "127.0.0.1:5432:5432"
     env:
       clear:

@@ -1,7 +1,7 @@
 import { Head } from "@inertiajs/react"
 import { PackageIcon } from "lucide-react"
 
-import { PageHeader } from "@/components/page-header"
+import { PageBar } from "@/components/page-bar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -19,11 +19,10 @@ export default function OrdersIndex({ orders }: { orders: Order[] }) {
   return (
     <>
       <Head title="Zamówienia" />
-      <PageHeader
-        title="Zamówienia"
-        description="Zamówienia z Live, marketplace'ów i sklepów na jednej liście."
+      <PageBar
+        breadcrumbs={[{ label: "Zamówienia" }]}
         actions={
-          <Button variant="outline" disabled>
+          <Button variant="outline" size="sm" disabled>
             Nowe zamówienie
           </Button>
         }

@@ -4,6 +4,7 @@ include:
 exclude:
   - "{bin,node_modules,script,tmp,vendor,db}/**/*"
 package_paths:
+  - "."
   - "packs/*"
   - "packs/*/*"
 require:

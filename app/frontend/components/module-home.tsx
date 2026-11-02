@@ -1,6 +1,6 @@
 import { CheckCircle2Icon, CircleDashedIcon } from "lucide-react"
 
-import { PageHeader } from "@/components/page-header"
+import { PageBar } from "@/components/page-bar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ModuleInfo } from "@/lib/modules"
 
@@ -8,7 +8,7 @@ import type { ModuleInfo } from "@/lib/modules"
 export function ModuleHome({ info, nextSteps }: { info: ModuleInfo; nextSteps: string[] }) {
   return (
     <>
-      <PageHeader title={info.name} description={info.tagline} />
+      <PageBar breadcrumbs={[{ label: info.name }]} />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
