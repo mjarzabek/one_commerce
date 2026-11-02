@@ -53,7 +53,7 @@ packs/
     panel/             # InertiaController (wspólne propsy), logowanie, pulpit
     orders/            # panel obsługi zamówień (Live lub MultiChannel)
     api/               # publiczne REST API /api/v1
-    inventory/         # Magazyn: katalogi, produkty, ceny, magazyny, stany, rezerwacje
+    inventory/         # sekcja „Produkty”: katalogi, produkty, ceny, magazyny, stany, rezerwacje
     customers/ payments/ shipping/ invoicing/ integrations/
   live/                # [Nazwa] Live
   multichannel/        # [Nazwa] MultiChannel

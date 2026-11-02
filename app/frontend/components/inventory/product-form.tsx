@@ -1,6 +1,6 @@
 import { useForm } from "@inertiajs/react"
 
-import { OptionSelect } from "@/components/inventory/option-select"
+import { OptionSelect } from "@/components/option-select"
 import { errorText, type CatalogOption, type FormErrors, type PriceGroup, type PriceInputs } from "@/components/inventory/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"

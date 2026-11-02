@@ -23,7 +23,7 @@ import { useSelection } from "@/components/data-table/use-selection"
 import { usePersistentState } from "@/hooks/use-persistent-state"
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
 import { InventoryTabs } from "@/components/inventory/inventory-tabs"
-import { OptionSelect } from "@/components/inventory/option-select"
+import { OptionSelect } from "@/components/option-select"
 import { StatusBadge } from "@/components/inventory/status-badge"
 import type { CatalogOption } from "@/components/inventory/types"
 import { PageBar } from "@/components/page-bar"
@@ -136,7 +136,7 @@ export default function InventoryProducts(props: Props) {
     <>
       <Head title="Produkty" />
       <PageBar
-        breadcrumbs={[{ label: "Magazyn", href: "/inventory" }, { label: "Produkty" }]}
+        breadcrumbs={[{ label: "Produkty" }]}
         actions={
           <Link href={`/inventory/products/new?catalog_id=${catalog.id}`} className={buttonVariants({ size: "sm" })}>
             <PlusIcon />

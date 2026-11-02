@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe "Magazyn – katalogi, magazyny i ceny", type: :request do
+RSpec.describe "Produkty – ustawienia: katalogi, magazyny, ceny i ogólne", type: :request do
   let(:user) { create(:user, modules: [ :live ]) }
   let(:account) { user.accounts.first }
   let(:catalog) { Inventory.default_catalog(account) }
@@ -12,28 +12,38 @@ RSpec.describe "Magazyn – katalogi, magazyny i ceny", type: :request do
     Inventory.ensure_setup!(account)
   end
 
-  it "otwiera zakładki Katalogi, Magazyny i Ceny" do
+  it "otwiera zakładki Ogólne, Katalogi, Magazyny i Ceny" do
     create(:variant, parent: create(:main_product, account:))
     create(:product, account:)
 
-    get "/inventory/catalogs"
-    expect_inertia.to render_component("core/inventory/catalogs/index")
+    get "/inventory/settings/catalogs"
+    expect_inertia.to render_component("core/inventory/settings/catalogs")
     expect(inertia.props[:catalogs].sole).to include("products" => 2, "warehouse_ids" => [ main.id ])
 
-    get "/inventory/warehouses"
-    expect_inertia.to render_component("core/inventory/warehouses/index")
+    get "/inventory/settings/warehouses"
+    expect_inertia.to render_component("core/inventory/settings/warehouses")
     expect(inertia.props[:warehouses].sole).to include("name" => "Magazyn główny", "units" => 0)
     expect(inertia.props[:warehouses].sole["catalogs"].map { _1["name"] }).to eq([ "Domyślny" ])
 
-    get "/inventory/prices"
-    expect_inertia.to render_component("core/inventory/prices/index")
+    get "/inventory/settings/prices"
+    expect_inertia.to render_component("core/inventory/settings/prices")
     expect(inertia.props[:sellable]).to eq(2)
+
+    get "/inventory/settings/general"
+    expect_inertia.to render_component("core/inventory/settings/general")
+    expect(inertia.props[:sources].keys).to match_array(Inventory::RESERVATION_SOURCES)
+    expect(inertia.props[:warehouses].sole).to include("id" => main.id)
+  end
+
+  it "przekierowuje /inventory/settings do ustawień ogólnych" do
+    get "/inventory/settings"
+    expect(response).to redirect_to("/inventory/settings/general")
   end
 
   describe "magazyny" do
     it "tworzy magazyn niezależnie od katalogu" do
       catalog
-      post "/inventory/warehouses", params: { name: "Punkt Y" }
+      post "/inventory/settings/warehouses", params: { name: "Punkt Y" }
 
       expect(Inventory.warehouses(account).map(&:name)).to eq([ "Magazyn główny", "Punkt Y" ])
       expect(Inventory.warehouses(account, catalog:).map(&:name)).to eq([ "Magazyn główny" ])
@@ -43,8 +53,8 @@ RSpec.describe "Magazyn – katalogi, magazyny i ceny", type: :request do
       create(:product, account:, stock: 1)
       spare = Inventory::Warehouse.create!(account:, name: "Pusty")
 
-      delete "/inventory/warehouses/#{main.id}"
-      delete "/inventory/warehouses/#{spare.id}"
+      delete "/inventory/settings/warehouses/#{main.id}"
+      delete "/inventory/settings/warehouses/#{spare.id}"
 
       expect(Inventory.warehouses(account).map(&:name)).to eq([ "Magazyn główny" ])
     end
@@ -78,11 +88,11 @@ RSpec.describe "Magazyn – katalogi, magazyny i ceny", type: :request do
     it "ustawia magazyn i rezerwację dla źródła zamówień" do
       shop = Inventory::Warehouse.create!(account:, name: "Punkt Y")
 
-      patch "/inventory/sources", params: { source: "ecommerce", enabled: false }
-      patch "/inventory/sources", params: { source: "ecommerce", warehouse_id: shop.id }
+      patch "/inventory/settings/sources", params: { source: "ecommerce", enabled: false }
+      patch "/inventory/settings/sources", params: { source: "ecommerce", warehouse_id: shop.id }
 
       expect(Inventory.source_settings(account)["ecommerce"]).to eq(enabled: false, warehouse_id: shop.id)
-      get "/inventory/warehouses"
+      get "/inventory/settings/general"
       expect(inertia.props[:sources]["ecommerce"]).to eq("enabled" => false, "warehouse_id" => shop.id)
     end
 
@@ -90,7 +100,7 @@ RSpec.describe "Magazyn – katalogi, magazyny i ceny", type: :request do
       shop = Inventory::Warehouse.create!(account:, name: "Punkt Y")
       Inventory.update_source_setting!(account, :live, warehouse_id: shop.id)
 
-      delete "/inventory/warehouses/#{shop.id}"
+      delete "/inventory/settings/warehouses/#{shop.id}"
 
       expect(flash[:alert]).to include("źródła zamówień")
     end
@@ -101,7 +111,7 @@ RSpec.describe "Magazyn – katalogi, magazyny i ceny", type: :request do
       shop = Inventory::Warehouse.create!(account:, name: "Punkt Y")
       allegro = Inventory.price_groups(account).create!(name: "Allegro")
 
-      post "/inventory/catalogs", params: { name: "Hurt", warehouse_ids: [ main.id, shop.id ], price_group_ids: [ allegro.id ] }
+      post "/inventory/settings/catalogs", params: { name: "Hurt", warehouse_ids: [ main.id, shop.id ], price_group_ids: [ allegro.id ] }
 
       hurt = Inventory.catalogs(account).find_by!(name: "Hurt")
       expect(Inventory.warehouses(account, catalog: hurt).map(&:name)).to eq([ "Magazyn główny", "Punkt Y" ])
@@ -110,18 +120,18 @@ RSpec.describe "Magazyn – katalogi, magazyny i ceny", type: :request do
     end
 
     it "nie usuwa grupy cenowej, która jest jedyną grupą katalogu" do
-      delete "/inventory/prices/#{retail.id}"
+      delete "/inventory/settings/prices/#{retail.id}"
       allegro = Inventory.price_groups(account).create!(name: "Allegro")
       Inventory::Catalog.create!(account:, name: "Allegro only", warehouse_ids: [ main.id ], price_group_ids: [ allegro.id ])
 
-      delete "/inventory/prices/#{allegro.id}"
+      delete "/inventory/settings/prices/#{allegro.id}"
 
       expect(flash[:alert]).to include("jedyna grupa cenowa katalogu")
       expect(Inventory.price_groups(account)).to include(allegro)
     end
 
     it "wymaga co najmniej jednego magazynu i jednej grupy cenowej" do
-      post "/inventory/catalogs", params: { name: "Hurt", warehouse_ids: [], price_group_ids: [] }
+      post "/inventory/settings/catalogs", params: { name: "Hurt", warehouse_ids: [], price_group_ids: [] }
 
       follow_redirect!
       expect(inertia.props[:errors].keys).to include("warehouse_ids", "price_group_ids")
@@ -133,7 +143,7 @@ RSpec.describe "Magazyn – katalogi, magazyny i ceny", type: :request do
       product = create(:product, account:)
       Inventory.receive!(account, product.id, 2, warehouse_id: shop.id)
 
-      patch "/inventory/catalogs/#{catalog.id}", params: { name: catalog.name, warehouse_ids: [ main.id ], price_group_ids: catalog.price_group_ids }
+      patch "/inventory/settings/catalogs/#{catalog.id}", params: { name: catalog.name, warehouse_ids: [ main.id ], price_group_ids: catalog.price_group_ids }
 
       follow_redirect!
       expect(inertia.props[:errors]["warehouse_ids"].first).to include("Punkt Y")
@@ -144,8 +154,8 @@ RSpec.describe "Magazyn – katalogi, magazyny i ceny", type: :request do
       hurt = Inventory::Catalog.create!(account:, name: "Hurt", warehouse_ids: [ main.id ], price_group_ids: [ Inventory.default_price_group(account).id ])
       create(:product, account:)
 
-      delete "/inventory/catalogs/#{catalog.id}"
-      delete "/inventory/catalogs/#{hurt.id}"
+      delete "/inventory/settings/catalogs/#{catalog.id}"
+      delete "/inventory/settings/catalogs/#{hurt.id}"
 
       expect(Inventory.catalogs(account).map(&:name)).to eq([ "Domyślny" ])
       expect(Inventory.warehouses(account).count).to eq(1)
@@ -153,11 +163,11 @@ RSpec.describe "Magazyn – katalogi, magazyny i ceny", type: :request do
   end
 
   it "dodaje grupę cenową, zmienia domyślną i nie usuwa domyślnej" do
-    post "/inventory/prices", params: { name: "EU", currency: "EUR" }
+    post "/inventory/settings/prices", params: { name: "EU", currency: "EUR" }
     eu = Inventory.price_groups(account).find_by!(name: "EU")
 
-    patch "/inventory/prices/#{eu.id}", params: { default: true }
-    delete "/inventory/prices/#{eu.id}"
+    patch "/inventory/settings/prices/#{eu.id}", params: { default: true }
+    delete "/inventory/settings/prices/#{eu.id}"
 
     expect(Inventory.default_price_group(account)).to eq(eu)
   end

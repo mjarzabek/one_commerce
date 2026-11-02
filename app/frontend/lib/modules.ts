@@ -1,4 +1,4 @@
-import { LayersIcon, MessagesSquareIcon, PackageIcon, RadioIcon, WarehouseIcon, type LucideIcon } from "lucide-react"
+import { LayersIcon, MessagesSquareIcon, PackageIcon, RadioIcon, ShirtIcon, type LucideIcon } from "lucide-react"
 
 import type { ModuleKey } from "@/types"
 
@@ -67,12 +67,23 @@ export const ORDERS_PANEL: ModuleInfo = {
   ],
 }
 
-export type NavLink = Pick<ModuleInfo, "name" | "href" | "icon">
+// `items` – podpozycje rozwijane w menu; `match` zawęża, które adresy podświetlają podpozycję (domyślnie `href` i podstrony).
+export type NavLink = Pick<ModuleInfo, "name" | "href" | "icon"> & {
+  items?: { name: string; href: string; match?: (url: string) => boolean }[]
+}
 
 // Ekrany Core dostępne razem z panelem zamówień (Live lub MultiChannel).
 export const CORE_NAV: NavLink[] = [
   ORDERS_PANEL,
-  { name: "Magazyn", href: "/inventory", icon: WarehouseIcon },
+  {
+    name: "Produkty",
+    href: "/inventory",
+    icon: ShirtIcon,
+    items: [
+      { name: "Lista produktów", href: "/inventory", match: (url) => !url.startsWith("/inventory/settings") },
+      { name: "Ustawienia", href: "/inventory/settings" },
+    ],
+  },
 ]
 
 export const MODULE_ORDER: ModuleKey[] = ["live", "multichannel", "chat"]

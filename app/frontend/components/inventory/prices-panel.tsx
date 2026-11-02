@@ -18,7 +18,7 @@ export function PricesPanel({
     <Card>
       <CardHeader>
         <CardTitle>Ceny brutto</CardTitle>
-        <CardDescription>Grupy cenowe katalogu produktu. Puste pole = produkt nie jest sprzedawany w tej grupie. Grupy katalogu wybierasz w Magazyn › Katalogi.</CardDescription>
+        <CardDescription>Grupy cenowe katalogu produktu. Puste pole = produkt nie jest sprzedawany w tej grupie. Grupy katalogu wybierasz w Produkty › Ustawienia › Katalogi.</CardDescription>
       </CardHeader>
       <CardContent>
         <PriceFields priceGroups={priceGroups} value={value} onChange={onChange} errors={errors} />

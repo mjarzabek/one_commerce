@@ -32,9 +32,8 @@ export const errorText = (errors: FormErrors, key: string) => {
   return Array.isArray(value) ? value.join(" ") : value
 }
 
-// Okruszki wspólne dla ekranów produktu: Magazyn › Produkty › Katalog.
+// Okruszki wspólne dla ekranów produktu: Produkty › Katalog.
 export const catalogCrumbs = (catalog: CatalogOption): Crumb[] => [
-  { label: "Magazyn", href: "/inventory" },
   { label: "Produkty", href: `/inventory?catalog_id=${catalog.id}` },
   { label: catalog.name, href: `/inventory?catalog_id=${catalog.id}` },
 ]

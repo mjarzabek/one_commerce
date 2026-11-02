@@ -27,7 +27,7 @@ module Orders
     validates :external_id, uniqueness: { scope: %i[account_id source] }, allow_nil: true
     validates :currency, :placed_at, presence: true
 
-    # Opis zamówienia w rezerwacjach i historii ruchów Magazynu.
+    # Opis zamówienia w rezerwacjach i historii ruchów Inventory.
     def inventory_label = "Zamówienie #{number}"
 
     def can_transition_to?(status)

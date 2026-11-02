@@ -2,7 +2,7 @@ import { ListFilterIcon } from "lucide-react"
 import { useEffect, useState, type ReactNode } from "react"
 
 import { activeFilterCount, emptyFilterValues, type FilterSchema, type FilterValues } from "@/components/data-table/types"
-import { OptionSelect } from "@/components/inventory/option-select"
+import { OptionSelect } from "@/components/option-select"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"

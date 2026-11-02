@@ -16,7 +16,7 @@ module Orders
   }.freeze
   SOURCE_LABELS = { "live" => "Live", "multichannel" => "E-commerce", "manual" => "Ręczne", "api" => "API" }.freeze
 
-  # Które ustawienie rezerwacji z Magazynu (live / ecommerce / manual) obowiązuje dane źródło zamówienia.
+  # Które ustawienie rezerwacji z Inventory (live / ecommerce / manual) obowiązuje dane źródło zamówienia.
   RESERVATION_SOURCE = { "live" => "live", "multichannel" => "ecommerce", "manual" => "manual", "api" => "manual" }.freeze
 
   class InvalidTransition < StandardError; end
@@ -33,7 +33,7 @@ module Orders
   #
   # Ceny i waluta pochodzą z `price_group` (domyślnie: domyślna grupa katalogu zamawianych produktów).
   # Zamówienie realizowane jest z jednego magazynu: `warehouse_id` albo magazynu ustawionego dla źródła
-  # (Magazyn › Magazyny › Źródła zamówień). Towar jest rezerwowany od razu, jeśli źródło ma włączone rezerwacje –
+  # (Produkty › Ustawienia › Ogólne › Źródła zamówień). Towar jest rezerwowany od razu, jeśli źródło ma włączone rezerwacje –
   # wtedy przy braku towaru w tym magazynie rzuca Inventory::InsufficientStock. Bez rezerwacji towar schodzi
   # ze stanu dopiero przy wysyłce.
   #
@@ -169,7 +169,7 @@ module Orders
   private_class_method :build_items
 
   # Wysyłka: realizuje aktywne rezerwacje, a to, czego jeszcze nie zdjęto ze stanu (brak rezerwacji, rezerwacja
-  # zwolniona ręcznie w Magazynie), zdejmuje teraz. Sztuki zrealizowane wcześniej ręcznie nie schodzą drugi raz.
+  # zwolniona ręcznie na karcie produktu), zdejmuje teraz. Sztuki zrealizowane wcześniej ręcznie nie schodzą drugi raz.
   def ship!(order, user:)
     Inventory.commit!(order, user:)
     order.items.select(&:product_id).group_by(&:product_id).each do |product_id, items|
