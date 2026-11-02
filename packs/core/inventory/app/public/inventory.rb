@@ -1,5 +1,5 @@
-# Publiczne API Magazynu: magazyny, katalogi, produkty proste i wariantowe, grupy cenowe, stany i rezerwacje.
-# Jedyne miejsce, które zmienia stany – moduły nie dotykają tabel inventory.
+# Publiczne API Inventory (w panelu sekcja „Produkty”): magazyny, katalogi, produkty proste i wariantowe, grupy cenowe, stany i rezerwacje.
+# Jedyne miejsce, które zmienia stany – moduły nie dotykają tabel inventory_*.
 #
 # Ceny i stany mają produkty sprzedawalne: proste i warianty (produkt główny wariantowy ich nie ma).
 # Magazyny są wspólne dla konta, a katalog wybiera, z których korzysta. Stan produktu jest osobny w każdym
@@ -319,6 +319,11 @@ module Inventory
     unit = currency == "PLN" ? "zł" : currency
     ActiveSupport::NumberHelper.number_to_currency(cents.to_d / 100, unit:, format: "%n %u", separator: ",", delimiter: " ",
       precision: 2, strip_insignificant_zeros: false)
+  end
+
+  # Grosze → wartość pola formularza („199,90”); nil bez kwoty.
+  def format_money_input(cents)
+    cents && format("%.2f", cents / 100.0).tr(".", ",")
   end
 
   # „199,99”, „199.99”, „1 299” → grosze; nil dla nieprawidłowej kwoty.

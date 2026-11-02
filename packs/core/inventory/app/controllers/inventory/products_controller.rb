@@ -26,7 +26,7 @@ module Inventory
             end
           }
         end,
-        pagination: { page: search.current_page, pages: search.pages, per: search.per, total: search.total },
+        pagination: { page: search.pagy.page, pages: search.pagy.pages, per: search.pagy.limit, total: search.pagy.count },
         filterSchema: search.schema.map do |filter|
           filter[:key] == "price" ? filter.merge(unit: group.currency == "PLN" ? "zł" : group.currency) : filter
         end,

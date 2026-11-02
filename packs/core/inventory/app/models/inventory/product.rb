@@ -44,12 +44,39 @@ module Inventory
       where("inventory_products.parent_id IS NOT NULL OR NOT EXISTS " \
             "(SELECT 1 FROM inventory_products v WHERE v.parent_id = inventory_products.id)")
     end
-    scope :search, ->(query) do
-      pattern = "%#{sanitize_sql_like(query)}%"
-      where("inventory_products.name ILIKE :pattern OR inventory_products.sku ILIKE :pattern OR inventory_products.ean ILIKE :pattern " \
-            "OR EXISTS (SELECT 1 FROM inventory_products v WHERE v.parent_id = inventory_products.id " \
-            "AND (v.name ILIKE :pattern OR v.sku ILIKE :pattern OR v.ean ILIKE :pattern))", pattern:)
+
+    # --- Rodzina produktu (produkt główny + warianty) -------------------------------------------
+    # „Pasuje produkt albo któryś z jego wariantów” = id produktu głównego pasujących rekordów.
+    MAIN_ID = Arel.sql("COALESCE(parent_id, id)")
+    MATCHABLE = %w[name sku ean].freeze
+
+    scope :family_of, ->(products) { where(id: products.select(MAIN_ID)) }
+    scope :matching, ->(column, text) do
+      raise ArgumentError, "Nieobsługiwana kolumna: #{column}" unless MATCHABLE.include?(column.to_s)
+
+      family_of(unscoped.where(arel_table[column].matches("%#{sanitize_sql_like(text)}%")))
     end
+    scope :with_variants, -> { where(id: unscoped.where.not(parent_id: nil).select(:parent_id)) }
+    scope :without_variants, -> { where.not(id: unscoped.where.not(parent_id: nil).select(:parent_id)) }
+    # Którakolwiek cena w rodzinie w grupie cenowej mieści się w zakresie (końce mogą być otwarte: `100..`, `..500`).
+    scope :priced_between, ->(price_group, range) do
+      family_of(unscoped.where(id: Price.where(price_group:, amount_cents: range).select(:product_id)))
+    end
+
+    # Stan rodziny w podanych magazynach (`stock_value`) i najniższa cena rodziny w grupie (`min_price`),
+    # liczone raz na produkt – można po nich filtrować i sortować (`family_stock.value`, `family_price.min`).
+    scope :with_family_metrics, ->(warehouse_ids:, price_group:) do
+      family = unscoped.from("inventory_products family")
+        .where("family.id = inventory_products.id OR family.parent_id = inventory_products.id").select("family.id")
+      stock = StockItem.where(warehouse_id: warehouse_ids, product_id: family).select("COALESCE(SUM(on_hand - reserved), 0) AS value")
+      price = Price.where(price_group:, product_id: family).select("MIN(amount_cents) AS min")
+
+      joins("LEFT JOIN LATERAL (#{stock.to_sql}) family_stock ON true")
+        .joins("LEFT JOIN LATERAL (#{price.to_sql}) family_price ON true")
+        .select("inventory_products.*, family_stock.value AS stock_value, family_price.min AS min_price")
+    end
+    # Wymaga `with_family_metrics`.
+    scope :stocked_between, ->(range) { where(Arel.sql("family_stock.value").between(range)) }
 
     def variant? = parent_id.present?
     def with_variants? = !variant? && variants.any?

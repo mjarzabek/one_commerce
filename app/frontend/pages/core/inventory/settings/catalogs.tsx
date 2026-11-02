@@ -3,7 +3,7 @@ import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
-import { InventoryTabs } from "@/components/inventory/inventory-tabs"
+import { InventorySettingsTabs } from "@/components/inventory/inventory-tabs"
 import { NameDialog } from "@/components/inventory/name-dialog"
 import { errorText, type CatalogOption, type FormErrors } from "@/components/inventory/types"
 import { PageBar } from "@/components/page-bar"
@@ -53,7 +53,7 @@ function CatalogActions({
         open={dialog === "edit"}
         onOpenChange={close}
         title={`Katalog „${catalog.name}”`}
-        action={`/inventory/catalogs/${catalog.id}`}
+        action={`/inventory/settings/catalogs/${catalog.id}`}
         method="patch"
         initial={{ name: catalog.name, warehouse_ids: catalog.warehouse_ids.map(String), price_group_ids: catalog.price_group_ids.map(String) }}
       >
@@ -64,13 +64,13 @@ function CatalogActions({
         onOpenChange={close}
         title={`Usunąć katalog „${catalog.name}”?`}
         description="Magazyny i grupy cenowe zostają – usuwany jest tylko katalog. Katalog z produktami nie może zostać usunięty."
-        url={`/inventory/catalogs/${catalog.id}`}
+        url={`/inventory/settings/catalogs/${catalog.id}`}
       />
     </>
   )
 }
 
-export default function InventoryCatalogs({ catalogs, warehouses, priceGroups }: Props) {
+export default function InventorySettingsCatalogs({ catalogs, warehouses, priceGroups }: Props) {
   const warehouseName = (id: number) => warehouses.find((w) => w.id === id)?.name ?? "?"
   const priceGroupName = (id: number) => priceGroups.find((g) => g.id === id)?.name ?? "?"
 
@@ -123,11 +123,11 @@ export default function InventoryCatalogs({ catalogs, warehouses, priceGroups }:
     <>
       <Head title="Katalogi" />
       <PageBar
-        breadcrumbs={[{ label: "Magazyn", href: "/inventory" }, { label: "Katalogi" }]}
+        breadcrumbs={[{ label: "Produkty", href: "/inventory" }, { label: "Ustawienia", href: "/inventory/settings" }, { label: "Katalogi" }]}
         actions={
           <NameDialog
             title="Nowy katalog"
-            action="/inventory/catalogs"
+            action="/inventory/settings/catalogs"
             initial={{ name: "", warehouse_ids: warehouses.slice(0, 1).map((w) => String(w.id)), price_group_ids: priceGroups.slice(0, 1).map((g) => String(g.id)) }}
             submitLabel="Dodaj katalog"
             trigger={
@@ -141,7 +141,7 @@ export default function InventoryCatalogs({ catalogs, warehouses, priceGroups }:
           </NameDialog>
         }
       />
-      <InventoryTabs />
+      <InventorySettingsTabs />
 
       <Card className="py-0">
         <Table>

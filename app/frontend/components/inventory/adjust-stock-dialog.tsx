@@ -2,7 +2,7 @@ import { useForm } from "@inertiajs/react"
 import { ArrowDownToLineIcon, CheckIcon, SlidersHorizontalIcon, type LucideIcon } from "lucide-react"
 import { useEffect, useState, type ReactElement } from "react"
 
-import { OptionSelect } from "@/components/inventory/option-select"
+import { OptionSelect } from "@/components/option-select"
 import { errorText, type FormErrors, type StockWarehouse } from "@/components/inventory/types"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"

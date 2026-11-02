@@ -16,6 +16,9 @@ gem "bcrypt", "~> 3.1.7"
 gem "vite_rails", "~> 3.11"
 gem "inertia_rails", "~> 3.22"
 
+# Pagination [https://ddnexus.github.io/pagy]
+gem "pagy", "~> 43.8"
+
 # Modular monolith: autoloading packs from packs/* [https://github.com/rubyatscale/packs-rails]
 gem "packs-rails"
 

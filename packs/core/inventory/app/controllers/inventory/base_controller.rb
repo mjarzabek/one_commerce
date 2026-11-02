@@ -1,5 +1,5 @@
 module Inventory
-  # Wspólna baza ekranów Magazynu: dostęp z panelem zamówień, domyślna konfiguracja konta, wybór katalogu
+  # Wspólna baza ekranów sekcji „Produkty”: dostęp z panelem zamówień, domyślna konfiguracja konta, wybór katalogu
   # i bloki karty produktu (ceny, stany w magazynach, historia ruchów).
   class BaseController < InertiaController
     REASON_LABELS = { "receipt" => "Przyjęcie", "adjustment" => "Korekta", "sale" => "Sprzedaż", "return" => "Zwrot" }.freeze
@@ -36,16 +36,12 @@ module Inventory
       # Ceny produktu do pól formularza: { "price_group_id" => "199,90" } – wszystkie grupy konta
       # (formularz pokazuje tylko grupy katalogu produktu).
       def price_inputs_json(product)
-        price_groups.to_h { |group| [ group.id.to_s, format_input(product.price_cents_in(group.id)) ] }
+        price_groups.to_h { |group| [ group.id.to_s, Inventory.format_money_input(product.price_cents_in(group.id)) ] }
       end
 
       # Ceny z formularza tylko dla grup, z których korzysta katalog produktu.
       def catalog_price_inputs(inputs, catalog)
         inputs.to_h.slice(*price_groups(catalog).map { _1.id.to_s })
-      end
-
-      def format_input(cents)
-        cents && format("%.2f", cents / 100.0).tr(".", ",")
       end
 
       # Stan w magazynach katalogu, aktywne rezerwacje i historia ruchów produktu sprzedawalnego.

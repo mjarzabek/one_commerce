@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe "Magazyn – produkty i warianty", type: :request do
+RSpec.describe "Produkty – lista, produkty i warianty", type: :request do
   let(:user) { create(:user, modules: [ :live ]) }
   let(:account) { user.accounts.first }
   let(:catalog) { Inventory.default_catalog(account) }
@@ -100,6 +100,20 @@ RSpec.describe "Magazyn – produkty i warianty", type: :request do
         expect(inertia.props[:view]).to include("sort" => "name", "dir" => "asc")
         expect(inertia.props[:filterSchema].map { _1["key"] }).to eq(%w[sku ean price stock status kind])
         expect(inertia.props[:filterSchema].find { _1["key"] == "price" }).to include("type" => "money_range", "params" => %w[price_min price_max])
+      end
+
+      it "pokazuje ostatnią stronę zamiast pustej i ignoruje nieobsługiwaną liczbę na stronę" do
+        get "/inventory", params: { per: 25, page: 99 }
+        expect(inertia.props[:pagination]).to include("page" => 1, "pages" => 1, "per" => 25, "total" => 3)
+        expect(inertia.props[:products].size).to eq(3)
+
+        get "/inventory", params: { per: 10 }
+        expect(inertia.props[:pagination]).to include("per" => 50)
+      end
+
+      it "filtruje i sortuje po stanie całej rodziny (suma wariantów)" do
+        expect(names(stock_min: "6")).to eq([ "Sukienka Lena" ])
+        expect(names(sort: "stock", dir: "desc").first).to eq("Sukienka Lena")
       end
     end
 
@@ -230,6 +244,12 @@ RSpec.describe "Magazyn – produkty i warianty", type: :request do
 
       expect(main.variants.reload).to eq([ used ])
     end
+  end
+
+  it "pokazuje zakładkę Zestawy" do
+    get "/inventory/bundles"
+
+    expect_inertia.to render_component("core/inventory/bundles/index")
   end
 
   it "nie pozwala edytować produktu innego konta" do

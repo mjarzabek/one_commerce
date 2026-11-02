@@ -3,9 +3,9 @@ import { PencilIcon, PlusIcon, StarIcon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
-import { InventoryTabs } from "@/components/inventory/inventory-tabs"
+import { InventorySettingsTabs } from "@/components/inventory/inventory-tabs"
 import { NameDialog } from "@/components/inventory/name-dialog"
-import { OptionSelect } from "@/components/inventory/option-select"
+import { OptionSelect } from "@/components/option-select"
 import { DefaultStar } from "@/components/default-star"
 import { PageBar } from "@/components/page-bar"
 import { RowActions } from "@/components/row-actions"
@@ -37,7 +37,7 @@ function PriceGroupActions({ group, currencyField }: { group: Group; currencyFie
             label: "Ustaw jako domyślną",
             icon: StarIcon,
             hidden: group.default,
-            onSelect: () => router.patch(`/inventory/prices/${group.id}`, { default: true }, { preserveScroll: true }),
+            onSelect: () => router.patch(`/inventory/settings/prices/${group.id}`, { default: true }, { preserveScroll: true }),
           },
           { label: "Edytuj", icon: PencilIcon, onSelect: () => setDialog("edit") },
           { label: "Usuń", icon: Trash2Icon, destructive: true, disabled: group.default, onSelect: () => setDialog("delete") },
@@ -47,7 +47,7 @@ function PriceGroupActions({ group, currencyField }: { group: Group; currencyFie
         open={dialog === "edit"}
         onOpenChange={close}
         title="Edytuj grupę cenową"
-        action={`/inventory/prices/${group.id}`}
+        action={`/inventory/settings/prices/${group.id}`}
         method="patch"
         initial={{ name: group.name, currency: group.currency }}
       >
@@ -58,13 +58,13 @@ function PriceGroupActions({ group, currencyField }: { group: Group; currencyFie
         onOpenChange={close}
         title={`Usunąć grupę „${group.name}”?`}
         description="Usuwa grupę razem ze wszystkimi cenami produktów w tej grupie."
-        url={`/inventory/prices/${group.id}`}
+        url={`/inventory/settings/prices/${group.id}`}
       />
     </>
   )
 }
 
-export default function InventoryPrices({ priceGroups, sellable, currencies }: Props) {
+export default function InventorySettingsPrices({ priceGroups, sellable, currencies }: Props) {
   const currencyField = ({ data, setData }: { data: Record<string, unknown>; setData: (key: string, value: string) => void }) => (
     <Field>
       <FieldLabel htmlFor="currency">Waluta</FieldLabel>
@@ -81,11 +81,11 @@ export default function InventoryPrices({ priceGroups, sellable, currencies }: P
     <>
       <Head title="Ceny" />
       <PageBar
-        breadcrumbs={[{ label: "Magazyn", href: "/inventory" }, { label: "Ceny" }]}
+        breadcrumbs={[{ label: "Produkty", href: "/inventory" }, { label: "Ustawienia", href: "/inventory/settings" }, { label: "Ceny" }]}
         actions={
           <NameDialog
             title="Nowa grupa cenowa"
-            action="/inventory/prices"
+            action="/inventory/settings/prices"
             initial={{ name: "", currency: "PLN" }}
             submitLabel="Dodaj grupę"
             trigger={
@@ -99,7 +99,7 @@ export default function InventoryPrices({ priceGroups, sellable, currencies }: P
           </NameDialog>
         }
       />
-      <InventoryTabs />
+      <InventorySettingsTabs />
 
       <Card className="py-0">
         <Table>
@@ -126,7 +126,7 @@ export default function InventoryPrices({ priceGroups, sellable, currencies }: P
                   {group.catalogs.length === 0 ? (
                     <span className="text-muted-foreground text-sm">
                       Nieużywana –{" "}
-                      <Link href="/inventory/catalogs" className="text-foreground underline underline-offset-4">
+                      <Link href="/inventory/settings/catalogs" className="text-foreground underline underline-offset-4">
                         zaznacz w katalogu
                       </Link>
                     </span>

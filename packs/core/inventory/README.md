@@ -1,12 +1,14 @@
-# packs/core/inventory – Magazyn
+# packs/core/inventory – Inventory (w panelu: sekcja „Produkty”)
 
-Jedno źródło prawdy o produktach, cenach i stanach dla wszystkich modułów. W panelu: sekcja „Magazyn”
-z zakładkami Produkty | Katalogi | Magazyny | Ceny oraz kartami produktu i wariantu (z okruszkami).
+Jedno źródło prawdy o produktach, cenach i stanach dla wszystkich modułów. W panelu: sekcja „Produkty”
+(`/inventory`) z dwiema częściami:
+- **Lista produktów** – zakładki Produkty | Zestawy (zestawy: wkrótce) oraz karty produktu i wariantu (z okruszkami);
+- **Ustawienia** (`/inventory/settings`) – zakładki Ogólne | Katalogi | Magazyny | Ceny (źródła zamówień i rezerwacje).
 
 Nazewnictwo: **magazyn** = fizyczne miejsce składowania, **stan** = liczba sztuk.
 
-- **Magazyny** – wspólne dla konta, tworzone w zakładce Magazyny.
-- **Źródła zamówień** (Live / E-commerce / Ręczne) – dla każdego wybierasz magazyn, z którego schodzi towar,
+- **Magazyny** – wspólne dla konta, tworzone w Ustawieniach → Magazyny.
+- **Źródła zamówień** (Live / E-commerce / Ręczne, Ustawienia → Ogólne) – dla każdego wybierasz magazyn, z którego schodzi towar,
   i czy zamówienie rezerwuje go od razu (`Inventory.source_settings`, `warehouse_for_source`). Zamówienie
   zapamiętuje swój magazyn; brak towaru w nim = brak towaru (bez pobierania z innych magazynów).
 - **Katalogi** – osobne zbiory produktów; w katalogu zaznaczasz, z których magazynów korzysta.

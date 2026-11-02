@@ -1,6 +1,6 @@
 require "rails_helper"
 
-# Zamówienia a magazyny: magazyn zamówienia wybierany per źródło (Magazyn › Magazyny › Źródła zamówień).
+# Zamówienia a magazyny: magazyn zamówienia wybierany per źródło (Produkty › Ustawienia › Ogólne › Źródła zamówień).
 RSpec.describe "Magazyn zamówienia" do
   let(:account) { create(:account) }
   let!(:product) { create(:product, account:, price_cents: 1_000, stock: 5) }
@@ -32,7 +32,7 @@ RSpec.describe "Magazyn zamówienia" do
     expect(create_order.warehouse_id).to eq(Inventory.warehouses(account).first.id)
   end
 
-  describe "ręczne zmiany rezerwacji w Magazynie a wysyłka i anulowanie" do
+  describe "ręczne zmiany rezerwacji na karcie produktu a wysyłka i anulowanie" do
     let(:order) { create_order }
     let(:reservation) { Inventory.reservations_for(order).active.sole }
     let(:main) { Inventory.warehouses(account).first }

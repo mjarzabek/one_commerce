@@ -1,8 +1,10 @@
 import { Link, router, usePage } from "@inertiajs/react"
-import { ChevronsUpDownIcon, LayoutDashboardIcon, LockIcon, LogOutIcon } from "lucide-react"
+import { ChevronRightIcon, ChevronsUpDownIcon, LayoutDashboardIcon, LockIcon, LogOutIcon } from "lucide-react"
+import { useEffect, useState } from "react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,9 +22,13 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { CORE_NAV, MODULE_ORDER, MODULES, type NavLink } from "@/lib/modules"
 
@@ -31,9 +37,51 @@ function isActive(currentUrl: string, href: string) {
   return currentUrl === href || currentUrl.startsWith(`${href}/`) || currentUrl.startsWith(`${href}?`)
 }
 
+// Pozycja z podpozycjami: przycisk prowadzi do sekcji, strzałka rozwija listę (otwarta, gdy sekcja jest aktywna).
+// W menu zwiniętym do ikon podpozycje są ukryte, zostaje sam link.
+function NavGroup({ item }: { item: NavLink & { items: NonNullable<NavLink["items"]> } }) {
+  const { url } = usePage()
+  const active = isActive(url, item.href)
+  const [open, setOpen] = useState(active)
+  const Icon = item.icon
+
+  useEffect(() => {
+    if (active) setOpen(true)
+  }, [active])
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} render={<SidebarMenuItem />}>
+      <SidebarMenuButton isActive={active} tooltip={item.name} render={<Link href={item.href} />}>
+        <Icon />
+        <span>{item.name}</span>
+      </SidebarMenuButton>
+      <CollapsibleTrigger
+        render={<SidebarMenuAction />}
+        className="data-panel-open:rotate-90"
+        aria-label={open ? `Zwiń: ${item.name}` : `Rozwiń: ${item.name}`}
+      >
+        <ChevronRightIcon />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <SidebarMenuSub>
+          {item.items.map((sub) => (
+            <SidebarMenuSubItem key={sub.href}>
+              <SidebarMenuSubButton isActive={isActive(url, sub.href) && (sub.match?.(url) ?? true)} render={<Link href={sub.href} />}>
+                <span>{sub.name}</span>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          ))}
+        </SidebarMenuSub>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
 function NavItem({ item, locked }: { item: NavLink; locked: boolean }) {
   const { url } = usePage()
   const Icon = item.icon
+
+  if (item.items && !locked) return <NavGroup item={{ ...item, items: item.items }} />
 
   return (
     <SidebarMenuItem>
