@@ -203,7 +203,18 @@ export default function InventoryProducts(props: Props) {
 
       <Card className="gap-0 py-0">
         <div className="overflow-x-auto">
-          <Table>
+          {/* Stały układ kolumn – szerokości nie zależą od treści, więc tabela nie „skacze” przy zmianie strony. */}
+          <Table className="min-w-[960px] table-fixed">
+            <colgroup>
+              <col className="w-10" />
+              <col className="w-8" />
+              <col />
+              <col className="w-44" />
+              <col className="w-36" />
+              <col className="w-32" />
+              <col className="w-24" />
+              <col className="w-36" />
+            </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10 pl-4">
@@ -284,21 +295,34 @@ export default function InventoryProducts(props: Props) {
                           )}
                         </TableCell>
                         <TableCell className="font-medium">
-                          <Link href={`/inventory/products/${product.id}/edit`} onClick={(e) => e.stopPropagation()}>
-                            {product.name}
-                          </Link>
-                          {hasVariants && (
-                            <span className="text-muted-foreground ml-2 inline-flex items-center gap-1 text-xs font-normal" title="Produkt z wariantami">
-                              <LayersIcon className="size-3.5" />
-                              {product.variants.length}
-                            </span>
-                          )}
+                          <div className="flex min-w-0 items-center">
+                            <Link
+                              href={`/inventory/products/${product.id}/edit`}
+                              className="truncate"
+                              title={product.name}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {product.name}
+                            </Link>
+                            {hasVariants && (
+                              <span className="text-muted-foreground ml-2 inline-flex shrink-0 items-center gap-1 text-xs font-normal" title="Produkt z wariantami">
+                                <LayersIcon className="size-3.5" />
+                                {product.variants.length}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{product.sku ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{product.ean ?? "—"}</TableCell>
-                        <TableCell className="text-right tabular-nums">{product.price ?? "—"}</TableCell>
-                        <TableCell className={cn("text-right font-medium tabular-nums", product.stock <= 0 && "text-destructive")}>{product.stock}</TableCell>
-                        <TableCell className="pr-4">
+                        <TableCell className="text-muted-foreground truncate" title={product.sku ?? undefined}>
+                          {product.sku ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground truncate" title={product.ean ?? undefined}>
+                          {product.ean ?? "—"}
+                        </TableCell>
+                        <TableCell className="truncate text-right tabular-nums" title={product.price ?? undefined}>
+                          {product.price ?? "—"}
+                        </TableCell>
+                        <TableCell className={cn("truncate text-right font-medium tabular-nums", product.stock <= 0 && "text-destructive")}>{product.stock}</TableCell>
+                        <TableCell className="truncate pr-4">
                           <StatusBadge status={product.status} label={statuses[product.status]} />
                         </TableCell>
                       </TableRow>
@@ -308,15 +332,26 @@ export default function InventoryProducts(props: Props) {
                             <TableCell className="pl-4" />
                             <TableCell className="px-0" />
                             <TableCell className="pl-6">
-                              <Link href={`/inventory/variants/${variant.id}/edit`} onClick={(e) => e.stopPropagation()}>
-                                <span className="text-muted-foreground">↳ </span>
-                                {variant.name}
+                              <Link
+                                href={`/inventory/variants/${variant.id}/edit`}
+                                className="flex min-w-0 items-center"
+                                title={variant.name}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span className="text-muted-foreground shrink-0 whitespace-pre">↳ </span>
+                                <span className="truncate">{variant.name}</span>
                               </Link>
                             </TableCell>
-                            <TableCell className="text-muted-foreground">{variant.sku ?? "—"}</TableCell>
-                            <TableCell className="text-muted-foreground">{variant.ean ?? "—"}</TableCell>
-                            <TableCell className="text-right tabular-nums">{variant.price ?? "—"}</TableCell>
-                            <TableCell className={cn("text-right tabular-nums", variant.stock <= 0 && "text-destructive")}>{variant.stock}</TableCell>
+                            <TableCell className="text-muted-foreground truncate" title={variant.sku ?? undefined}>
+                              {variant.sku ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground truncate" title={variant.ean ?? undefined}>
+                              {variant.ean ?? "—"}
+                            </TableCell>
+                            <TableCell className="truncate text-right tabular-nums" title={variant.price ?? undefined}>
+                              {variant.price ?? "—"}
+                            </TableCell>
+                            <TableCell className={cn("truncate text-right tabular-nums", variant.stock <= 0 && "text-destructive")}>{variant.stock}</TableCell>
                             <TableCell className="pr-4" />
                           </TableRow>
                         ))}
