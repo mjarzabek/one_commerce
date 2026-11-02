@@ -46,7 +46,8 @@ module Inventory
     #   operation=delete | operation=status&new_status=archived
     # (`new_status`, nie `status` – `status` to filtr listy.)
     def bulk
-      ids = ActiveModel::Type::Boolean.new.cast(params[:all]) ? build_search.first.ids : Array(params[:ids]).map(&:to_i)
+      all = ActiveModel::Type::Boolean.new.cast(params[:all])
+      ids = all ? build_search.first.ids - Array(params[:excluded_ids]).map(&:to_i) : Array(params[:ids]).map(&:to_i)
       return redirect_back_or_to(inventory_root_path, alert: "Nie zaznaczono produktów.") if ids.empty?
 
       case params[:operation]

@@ -104,12 +104,14 @@ export default function InventoryProducts(props: Props) {
   const pageIds = products.map((product) => product.id)
   const pageSelected = pageIds.length > 0 && pageIds.every(selection.isSelected)
   const pageSomeSelected = pageIds.some(selection.isSelected)
-  const selectedCount = selection.allMatching ? pagination.total : selection.ids.size
+  const selectedCount = selection.count(pagination.total)
 
   const bulk = (operation: Record<string, string>) =>
     router.post(
       "/inventory/products/bulk",
-      selection.allMatching ? { ...listParams(), ...operation, all: "true" } : { ...operation, ids: [...selection.ids] },
+      selection.allMatching
+        ? { ...listParams(), ...operation, all: "true", excluded_ids: [...selection.ids] }
+        : { ...operation, ids: [...selection.ids] },
       { preserveScroll: true, onSuccess: () => selection.clear() },
     )
 
@@ -200,25 +202,6 @@ export default function InventoryProducts(props: Props) {
       />
 
       <Card className="gap-0 py-0">
-        {pageSelected && pagination.total > pageIds.length && (
-          <div className="bg-muted/50 border-b px-4 py-2 text-center text-sm">
-            {selection.allMatching ? (
-              <>
-                Zaznaczono wszystkie {pagination.total} {productsWord(pagination.total)} pasujące do wyszukiwania.{" "}
-                <button type="button" className="font-medium underline underline-offset-4" onClick={selection.clear}>
-                  Wyczyść zaznaczenie
-                </button>
-              </>
-            ) : (
-              <>
-                Zaznaczono {pageIds.length} {productsWord(pageIds.length)} na tej stronie.{" "}
-                <button type="button" className="font-medium underline underline-offset-4" onClick={() => selection.setAllMatching(true)}>
-                  Zaznacz wszystkie {pagination.total} pasujące
-                </button>
-              </>
-            )}
-          </div>
-        )}
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -358,7 +341,14 @@ export default function InventoryProducts(props: Props) {
       {/* Miejsce na pasek akcji, żeby nie zasłaniał ostatniego wiersza. */}
       {selectedCount > 0 && <div className="h-16" aria-hidden />}
 
-      <BulkActionBar count={selectedCount} onClear={selection.clear}>
+      <BulkActionBar
+        count={selectedCount}
+        onClear={selection.clear}
+        total={pagination.total}
+        pageSelected={pageSelected}
+        onPage={(selected) => selection.setPage(pageIds, selected)}
+        onAll={selection.selectAll}
+      >
         <DropdownMenu>
           <DropdownMenuTrigger
             render={

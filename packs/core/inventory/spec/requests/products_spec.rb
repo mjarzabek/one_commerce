@@ -143,6 +143,12 @@ RSpec.describe "Produkty – lista, produkty i warianty", type: :request do
         expect(Inventory.products(account).where(status: "draft").map(&:name)).to eq([ "Kubek" ])
       end
 
+      it "pomija produkty odznaczone ręcznie w trybie wszystkich stron" do
+        post "/inventory/products/bulk", params: { operation: "status", new_status: "draft", all: "true", per: 25, excluded_ids: [ scarf.id ] }
+
+        expect(Inventory.products(account).where(status: "draft").map(&:name)).to contain_exactly("Kubek", "Na stanie")
+      end
+
       it "usuwa produkt wariantowy razem z wariantami" do
         main = create(:main_product, account:, name: "Sukienka")
         create(:variant, parent: main)
