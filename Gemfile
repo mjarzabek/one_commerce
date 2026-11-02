@@ -14,7 +14,7 @@ gem "bcrypt", "~> 3.1.7"
 
 # Frontend: Vite + Inertia.js (React) [https://vite-ruby.netlify.app] [https://inertia-rails.dev]
 gem "vite_rails", "~> 3.11"
-gem "inertia_rails", "~> 3.22"
+gem "inertia_rails", "~> 3.23"
 
 # Pagination [https://ddnexus.github.io/pagy]
 gem "pagy", "~> 43.8"
