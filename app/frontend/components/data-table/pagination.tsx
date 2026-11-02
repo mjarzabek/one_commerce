@@ -8,15 +8,15 @@ import { cn } from "@/lib/utils"
 
 export type PaginationState = { page: number; pages: number; per: number; total: number }
 
-// Zawsze 4 pozycje między strzałkami, żeby paginacja nie zmieniała szerokości:
-//   początek ‹ 1 2 … 7 ›   środek ‹ 3 4 … 7 ›   koniec ‹ 1 … 6 7 ›
-// Przy maksymalnie 4 stronach – wszystkie numery.
+// Zawsze 5 pozycji między strzałkami, żeby paginacja nie zmieniała szerokości.
+// Okno przesuwa się o jedną stronę – zawsze widać poprzednią i następną:
+//   początek ‹ 1 2 3 … 20 ›   środek ‹ 9 10 11 … 20 ›   koniec ‹ 16 17 18 19 20 ›
+// Przy maksymalnie 5 stronach – wszystkie numery.
 export function pageWindow(page: number, pages: number): (number | "gap")[] {
-  if (pages <= 4) return Array.from({ length: pages }, (_, index) => index + 1)
-  if (page <= 2) return [1, 2, "gap", pages]
-  if (page >= pages - 1) return [1, "gap", pages - 1, pages]
-  if (page + 2 < pages) return [page, page + 1, "gap", pages]
-  return [pages - 3, pages - 2, pages - 1, pages]
+  if (pages <= 5) return Array.from({ length: pages }, (_, index) => index + 1)
+  if (page <= 2) return [1, 2, 3, "gap", pages]
+  if (page >= pages - 3) return [pages - 4, pages - 3, pages - 2, pages - 1, pages]
+  return [page - 1, page, page + 1, "gap", pages]
 }
 
 // „…” – po kliknięciu pole do wpisania numeru strony (Enter przechodzi).
