@@ -89,7 +89,7 @@ export default function InventorySettingsPrices({ priceGroups, sellable, currenc
             initial={{ name: "", currency: "PLN" }}
             submitLabel="Dodaj grupę"
             trigger={
-              <Button size="sm">
+              <Button>
                 <PlusIcon />
                 Dodaj grupę cenową
               </Button>
@@ -99,11 +99,11 @@ export default function InventorySettingsPrices({ priceGroups, sellable, currenc
           </NameDialog>
         }
       />
-      <InventorySettingsTabs />
-
-      <Card className="py-0">
+      {/* Zakładki w karcie razem z tabelą – jak na liście produktów. */}
+      <Card className="gap-0 py-0">
+        <InventorySettingsTabs className="mt-0 px-2" />
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead className="pl-4">Nazwa</TableHead>
               <TableHead>Waluta</TableHead>

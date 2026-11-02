@@ -140,25 +140,26 @@ export default function InventoryProducts(props: Props) {
       <PageBar
         breadcrumbs={[{ label: "Produkty" }]}
         actions={
-          <Link href={`/inventory/products/new?catalog_id=${catalog.id}`} className={buttonVariants({ size: "sm" })}>
+          <Link href={`/inventory/products/new?catalog_id=${catalog.id}`} className={buttonVariants()}>
             <PlusIcon />
             Dodaj produkt
           </Link>
         }
       />
-      <InventoryTabs />
+      {/* Jedna biała karta: zakładki, wyszukiwanie i filtry, potem tabela. */}
+      <Card className="gap-0 py-0">
+        <InventoryTabs className="mt-0 px-2" />
 
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-72">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+          <div className="relative w-full sm:max-w-sm sm:flex-1">
             <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-            <Input placeholder="Szukaj po nazwie…" aria-label="Szukaj po nazwie" className="h-8 pl-8" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <Input placeholder="Szukaj po nazwie…" aria-label="Szukaj po nazwie" className="pl-8" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
           <FilterToggle schema={filterSchema} values={filters} open={filtersOpen} onToggle={() => setFiltersOpen(!filtersOpen)} />
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {catalogs.length > 1 && (
               <OptionSelect
-                className="h-8 w-44"
+                className="w-44"
                 options={catalogs.map((c) => ({ value: String(c.id), label: `Katalog: ${c.name}` }))}
                 value={String(catalog.id)}
                 onChange={(value) => visit({ catalog_id: Number(value), warehouse_id: null, price_group_id: null })}
@@ -166,7 +167,7 @@ export default function InventoryProducts(props: Props) {
             )}
             {priceGroups.length > 1 && (
               <OptionSelect
-                className="h-8 w-44"
+                className="w-44"
                 options={priceGroups.map((g) => ({ value: String(g.id), label: `Cena: ${g.name}` }))}
                 value={String(view.price_group_id)}
                 onChange={(value) => visit({ price_group_id: Number(value), page: pagination.page }, { keepSelection: true })}
@@ -174,7 +175,7 @@ export default function InventoryProducts(props: Props) {
             )}
             {multiWarehouse && (
               <OptionSelect
-                className="h-8 w-52"
+                className="w-52"
                 options={[{ value: ALL, label: "Stan: łącznie" }, ...warehouses.map((w) => ({ value: String(w.id), label: `Stan: ${w.name}` }))]}
                 value={view.warehouse_id ? String(view.warehouse_id) : ALL}
                 onChange={(value) => visit({ warehouse_id: value === ALL ? null : Number(value), page: pagination.page }, { keepSelection: true })}
@@ -182,27 +183,37 @@ export default function InventoryProducts(props: Props) {
             )}
           </div>
         </div>
+
         {filtersOpen ? (
-          <FilterPanel schema={filterSchema} values={filters} onApply={(values) => visit(values)} />
-        ) : (
-          <FilterChips
+          <FilterPanel
             schema={filterSchema}
             values={filters}
-            onRemove={(params) => visit(Object.fromEntries(params.map((param) => [param, ""])))}
-            onClear={() => visit(emptyFilterValues(filterSchema))}
+            onApply={(values) => visit(values)}
+            className="rounded-none border-x-0 border-b-0 px-3 pt-5"
           />
+        ) : (
+          activeFilterCount(filterSchema, filters) > 0 && (
+            <div className="px-3 pb-3">
+              <FilterChips
+                schema={filterSchema}
+                values={filters}
+                onRemove={(params) => visit(Object.fromEntries(params.map((param) => [param, ""])))}
+                onClear={() => visit(emptyFilterValues(filterSchema))}
+              />
+            </div>
+          )
         )}
-      </div>
 
-      <Pagination
-        pagination={pagination}
-        noun={productsWord(pagination.total)}
-        onPage={(page) => visit({ page }, { keepSelection: true })}
-        onPer={(per) => visit({ per }, { keepSelection: true })}
-      />
+        <div className="border-t px-4 py-2">
+          <Pagination
+            pagination={pagination}
+            noun={productsWord(pagination.total)}
+            onPage={(page) => visit({ page }, { keepSelection: true })}
+            onPer={(per) => visit({ per }, { keepSelection: true })}
+          />
+        </div>
 
-      <Card className="gap-0 py-0">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto border-t">
           {/* Stały układ kolumn – szerokości nie zależą od treści, więc tabela nie „skacze” przy zmianie strony. */}
           <Table className="min-w-[960px] table-fixed">
             <colgroup>
@@ -215,7 +226,7 @@ export default function InventoryProducts(props: Props) {
               <col className="w-24" />
               <col className="w-36" />
             </colgroup>
-            <TableHeader>
+            <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="w-10 pl-4">
                   <Checkbox
@@ -249,7 +260,6 @@ export default function InventoryProducts(props: Props) {
                       {filtered ? (
                         <Button
                           variant="outline"
-                          size="sm"
                           onClick={() => {
                             setQuery("")
                             visit({ ...emptyFilterValues(filterSchema), q: "" })
@@ -282,7 +292,7 @@ export default function InventoryProducts(props: Props) {
                           {hasVariants && (
                             <Button
                               variant="ghost"
-                              size="icon-sm"
+                              size="icon-xs"
                               aria-label={open ? "Zwiń warianty" : "Rozwiń warianty"}
                               aria-expanded={open}
                               onClick={(e) => {
@@ -387,7 +397,7 @@ export default function InventoryProducts(props: Props) {
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <Button variant="outline" size="sm">
+              <Button variant="outline">
                 <TagIcon />
                 Zmień status
                 <ChevronDownIcon data-icon="inline-end" />
@@ -407,7 +417,7 @@ export default function InventoryProducts(props: Props) {
           description="Produkty z wariantami zostaną usunięte razem z wariantami. Produkty z towarem, historią magazynową lub zamówieniami zostaną pominięte – takie archiwizuj."
           onConfirm={() => bulk({ operation: "delete" })}
           trigger={
-            <Button variant="destructive" size="sm">
+            <Button variant="destructive">
               <Trash2Icon />
               Usuń
             </Button>

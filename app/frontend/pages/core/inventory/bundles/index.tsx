@@ -11,9 +11,8 @@ export default function InventoryBundles() {
     <>
       <Head title="Zestawy" />
       <PageBar breadcrumbs={[{ label: "Produkty", href: "/inventory" }, { label: "Zestawy" }]} />
-      <InventoryTabs />
-
-      <Card>
+      <Card className="gap-0 pt-0">
+        <InventoryTabs className="mt-0 mb-6 px-2" />
         <CardHeader className="items-center text-center">
           <div className="bg-muted mx-auto mb-2 flex size-10 items-center justify-center rounded-lg">
             <BoxesIcon className="size-5" />

@@ -29,12 +29,12 @@ export function SaveBar({
         >
           <span className="text-sm font-medium">Niezapisane zmiany</span>
           {onDiscard && (
-            <Button variant="ghost" size="sm" disabled={processing} onClick={onDiscard}>
+            <Button variant="ghost" disabled={processing} onClick={onDiscard}>
               <RotateCcwIcon />
               Odrzuć
             </Button>
           )}
-          <Button size="sm" disabled={processing} onClick={onSave}>
+          <Button disabled={processing} onClick={onSave}>
             <CheckIcon />
             {processing ? "Zapisywanie…" : label}
           </Button>

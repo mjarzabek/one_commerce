@@ -23,13 +23,13 @@ export function PageBarProvider({ children }: { children: ReactNode }) {
   return <SlotContext.Provider value={{ slot, setSlot }}>{children}</SlotContext.Provider>
 }
 
-// Miejsce w górnym pasku layoutu, do którego strona wstawia okruszki i akcje.
+// Wiersz tytułu nad treścią strony, do którego strona wstawia okruszki i akcje (pusty = ukryty).
 export function PageBarSlot() {
   const { setSlot } = useContext(SlotContext)
-  return <div ref={setSlot} className="flex min-w-0 flex-1 items-center justify-between gap-2" />
+  return <div ref={setSlot} className="flex min-h-9 min-w-0 items-center justify-between gap-2 empty:hidden" />
 }
 
-// Okruszki (ostatni = tytuł strony) i akcje strony w górnym pasku.
+// Okruszki (ostatni = tytuł strony) i akcje strony nad treścią.
 export function PageBar({ breadcrumbs, actions }: { breadcrumbs: Crumb[]; actions?: ReactNode }) {
   const { slot } = useContext(SlotContext)
   if (!slot) return null
@@ -47,7 +47,7 @@ export function PageBar({ breadcrumbs, actions }: { breadcrumbs: Crumb[]; action
                   {item.href && !last ? (
                     <BreadcrumbLink render={<Link href={item.href} />}>{item.label}</BreadcrumbLink>
                   ) : (
-                    <BreadcrumbPage className="truncate font-medium">{item.label}</BreadcrumbPage>
+                    <BreadcrumbPage className="truncate text-lg font-semibold tracking-tight">{item.label}</BreadcrumbPage>
                   )}
                 </BreadcrumbItem>
               </Fragment>

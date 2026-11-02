@@ -29,7 +29,7 @@ export function RowActions({ actions, label = "Akcje" }: { actions: RowAction[];
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon-sm" aria-label={label} onClick={(e) => e.stopPropagation()}>
+          <Button variant="ghost" size="icon-xs" aria-label={label} onClick={(e) => e.stopPropagation()}>
             <MoreHorizontalIcon />
           </Button>
         }

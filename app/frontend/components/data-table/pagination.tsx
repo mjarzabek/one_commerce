@@ -26,7 +26,7 @@ function GapJump({ pages, onJump }: { pages: number; onJump: (page: number) => v
 
   if (!editing) {
     return (
-      <Button variant="ghost" size="sm" className="h-7 min-w-7 px-1.5" aria-label="Przejdź do strony…" onClick={() => setEditing(true)}>
+      <Button variant="ghost" size="sm" className="min-w-8 px-1.5" aria-label="Przejdź do strony…" onClick={() => setEditing(true)}>
         …
       </Button>
     )
@@ -50,7 +50,7 @@ function GapJump({ pages, onJump }: { pages: number; onJump: (page: number) => v
         inputMode="numeric"
         aria-label={`Numer strony (1–${pages})`}
         placeholder="nr"
-        className="h-7 w-14 px-1.5 text-center tabular-nums"
+        className="h-8 w-14 px-1.5 text-center tabular-nums"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={() => {
@@ -90,7 +90,7 @@ export function Pagination({
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <Button variant="ghost" size="sm" className="text-foreground -ml-2 h-7 px-2 tabular-nums" aria-label="Liczba pozycji na stronę">
+              <Button variant="ghost" size="sm" className="text-foreground -ml-2 px-2 tabular-nums" aria-label="Liczba pozycji na stronę">
                 {first}–{last}
                 <ChevronDownIcon data-icon="inline-end" />
               </Button>
@@ -125,7 +125,7 @@ export function Pagination({
                 key={item}
                 variant={item === page ? "outline" : "ghost"}
                 size="sm"
-                className={cn("h-7 min-w-7 px-2 tabular-nums", item === page ? "text-foreground font-semibold" : "text-muted-foreground")}
+                className={cn("min-w-8 px-2 tabular-nums", item === page ? "text-foreground font-semibold" : "text-muted-foreground")}
                 aria-label={`Strona ${item}`}
                 aria-current={item === page ? "page" : undefined}
                 onClick={() => go(item)}

@@ -19,13 +19,13 @@ const activeTab = (url: string, tabs: { value: string; href: string }[]) =>
   tabs.find((tab) => url === tab.href || url.startsWith(`${tab.href}/`) || url.startsWith(`${tab.href}?`))?.value
 
 // Zakładki listy produktów: Produkty | Zestawy.
-export function InventoryTabs() {
+export function InventoryTabs({ className }: { className?: string }) {
   const { url } = usePage()
-  return <TabNav label="Lista produktów" items={LIST_TABS} value={activeTab(url, LIST_TABS.slice(1)) ?? "products"} />
+  return <TabNav label="Lista produktów" items={LIST_TABS} value={activeTab(url, LIST_TABS.slice(1)) ?? "products"} className={className} />
 }
 
 // Zakładki ustawień produktów: Ogólne | Katalogi | Magazyny | Ceny.
-export function InventorySettingsTabs() {
+export function InventorySettingsTabs({ className }: { className?: string }) {
   const { url } = usePage()
-  return <TabNav label="Ustawienia produktów" items={SETTINGS_TABS} value={activeTab(url, SETTINGS_TABS) ?? "general"} />
+  return <TabNav label="Ustawienia produktów" items={SETTINGS_TABS} value={activeTab(url, SETTINGS_TABS) ?? "general"} className={className} />
 }

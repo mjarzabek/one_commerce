@@ -86,14 +86,14 @@ export function StockPanel({ productId, label, stock }: { productId: number; lab
   )
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
       <Card className="gap-0 pb-0">
         <CardHeader className="pb-4">
           <CardTitle>Stan w magazynach</CardTitle>
           <CardDescription>Magazyny, z których korzysta katalog produktu.</CardDescription>
           <CardAction>
             <AdjustStockDialog productId={productId} label={label} warehouses={stock.warehouses} trigger={
-                <Button size="sm">
+                <Button>
                   <ArrowDownUpIcon />
                   Zmień stan
                 </Button>

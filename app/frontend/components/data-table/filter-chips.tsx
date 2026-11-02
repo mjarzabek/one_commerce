@@ -39,7 +39,7 @@ export function FilterChips({
       {active.map((filter) => {
         const label = `${filter.label}: ${describe(filter, values)}`
         return (
-          <Badge key={filter.key} variant="secondary" className="h-6 gap-1 pr-1 font-normal">
+          <Badge key={filter.key} variant="secondary" className="h-7 gap-1 pr-1 pl-2.5 font-normal">
             {label}
             <button type="button" aria-label={`Usuń filtr ${label}`} className="hover:bg-foreground/10 rounded-sm p-0.5" onClick={() => onRemove(filter.params)}>
               <XIcon className="size-3" />
@@ -47,7 +47,7 @@ export function FilterChips({
           </Badge>
         )
       })}
-      <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={onClear}>
+      <Button variant="ghost" size="xs" onClick={onClear}>
         Wyczyść filtry
       </Button>
     </div>

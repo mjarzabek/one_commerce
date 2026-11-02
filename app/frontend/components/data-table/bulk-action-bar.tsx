@@ -38,7 +38,7 @@ export function BulkActionBar({ count, onClear, children, total, pageSelected = 
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button variant="ghost" size="sm" className="-ml-2 font-medium">
+                <Button variant="ghost" className="-ml-2 font-medium">
                   {label}
                   <ChevronDownIcon data-icon="inline-end" />
                 </Button>

@@ -8,7 +8,7 @@ import { MovementsPanel, StockPanel } from "@/components/inventory/stock-panels"
 import { catalogCrumbs, type ProductStock } from "@/components/inventory/types"
 import { useVariantForm, VariantGeneralFields, type VariantFormProps } from "@/components/inventory/variant-form"
 import { PageBar } from "@/components/page-bar"
-import { TabNav } from "@/components/tab-nav"
+import { TabbedCard } from "@/components/tabbed-card"
 import { Button } from "@/components/ui/button"
 import { useTabParam } from "@/hooks/use-tab-param"
 
@@ -35,7 +35,7 @@ export default function InventoryVariantEdit({ stock, ...props }: Props) {
             description="Można usunąć tylko wariant bez historii magazynowej i zamówień."
             url={`/inventory/variants/${variant.id}`}
             trigger={
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost">
                 <Trash2Icon />
                 Usuń wariant
               </Button>
@@ -44,7 +44,7 @@ export default function InventoryVariantEdit({ stock, ...props }: Props) {
         }
       />
 
-      <TabNav
+      <TabbedCard
         label="Sekcje wariantu"
         value={tab}
         onChange={(value) => setTab(value as (typeof TABS)[number])}
@@ -54,12 +54,14 @@ export default function InventoryVariantEdit({ stock, ...props }: Props) {
           { value: "stock", label: "Stan", icon: BoxesIcon },
           { value: "history", label: "Historia", icon: HistoryIcon },
         ]}
-      />
+      >
 
       {tab === "general" && <VariantGeneralFields state={state} {...props} />}
       {tab === "prices" && <PricesPanel priceGroups={props.priceGroups} value={state.form.data.prices} onChange={(prices) => state.form.setData("prices", prices)} errors={state.errors} />}
       {tab === "stock" && <StockPanel productId={variant.id!} label={label} stock={stock} />}
       {tab === "history" && <MovementsPanel stock={stock} />}
+
+      </TabbedCard>
 
       <SaveBar
         visible={state.form.isDirty}

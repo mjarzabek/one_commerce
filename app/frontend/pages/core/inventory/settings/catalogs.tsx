@@ -131,7 +131,7 @@ export default function InventorySettingsCatalogs({ catalogs, warehouses, priceG
             initial={{ name: "", warehouse_ids: warehouses.slice(0, 1).map((w) => String(w.id)), price_group_ids: priceGroups.slice(0, 1).map((g) => String(g.id)) }}
             submitLabel="Dodaj katalog"
             trigger={
-              <Button size="sm">
+              <Button>
                 <PlusIcon />
                 Dodaj katalog
               </Button>
@@ -141,11 +141,11 @@ export default function InventorySettingsCatalogs({ catalogs, warehouses, priceG
           </NameDialog>
         }
       />
-      <InventorySettingsTabs />
-
-      <Card className="py-0">
+      {/* Zakładki w karcie razem z tabelą – jak na liście produktów. */}
+      <Card className="gap-0 py-0">
+        <InventorySettingsTabs className="mt-0 px-2" />
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead className="pl-4">Nazwa</TableHead>
               <TableHead>Magazyny</TableHead>

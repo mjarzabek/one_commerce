@@ -30,10 +30,10 @@ export default function InventorySettingsGeneral({ warehouses, sources }: Props)
     <>
       <Head title="Ustawienia ogólne" />
       <PageBar breadcrumbs={[{ label: "Produkty", href: "/inventory" }, { label: "Ustawienia", href: "/inventory/settings" }, { label: "Ogólne" }]} />
-      <InventorySettingsTabs />
-
-      <Card className="gap-0 pb-0">
-        <CardHeader className="pb-4">
+      {/* Zakładki w karcie – jak na liście produktów. */}
+      <Card className="gap-0 py-0">
+        <InventorySettingsTabs className="mt-0 px-2" />
+        <CardHeader className="py-4">
           <CardTitle>Źródła zamówień</CardTitle>
           <CardDescription>
             Z którego magazynu schodzi towar zamówień z danego źródła i czy zamówienie rezerwuje go od razu. Bez rezerwacji towar schodzi ze stanu
@@ -41,7 +41,7 @@ export default function InventorySettingsGeneral({ warehouses, sources }: Props)
           </CardDescription>
         </CardHeader>
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead className="pl-6">Źródło</TableHead>
               <TableHead>Magazyn</TableHead>

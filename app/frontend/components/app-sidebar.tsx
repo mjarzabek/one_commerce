@@ -1,26 +1,14 @@
-import { Link, router, usePage } from "@inertiajs/react"
-import { ChevronRightIcon, ChevronsUpDownIcon, LayoutDashboardIcon, LockIcon, LogOutIcon } from "lucide-react"
+import { Link, usePage } from "@inertiajs/react"
+import { ChevronRightIcon, HomeIcon, LockIcon, PanelLeftCloseIcon, PanelLeftOpenIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuAction,
   SidebarMenuBadge,
@@ -29,15 +17,20 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { CORE_NAV, MODULE_ORDER, MODULES, type NavLink } from "@/lib/modules"
+import { cn } from "@/lib/utils"
+
+// Pozycja w stylu Shopify: niska, aktywna na białym tle z cieniem.
+const ITEM_CLASS = "h-8 text-sm font-medium data-active:bg-card data-active:shadow-xs"
 
 function isActive(currentUrl: string, href: string) {
   if (href === "/") return currentUrl === "/"
   return currentUrl === href || currentUrl.startsWith(`${href}/`) || currentUrl.startsWith(`${href}?`)
 }
 
-// Pozycja z podpozycjami: przycisk prowadzi do sekcji, strzałka rozwija listę (otwarta, gdy sekcja jest aktywna).
+// Pozycja z podpozycjami: przycisk prowadzi do sekcji, strzałka rozwija listę (otwiera się po wejściu do sekcji i zwija po wyjściu z niej).
 // W menu zwiniętym do ikon podpozycje są ukryte, zostaje sam link.
 function NavGroup({ item }: { item: NavLink & { items: NonNullable<NavLink["items"]> } }) {
   const { url } = usePage()
@@ -46,27 +39,37 @@ function NavGroup({ item }: { item: NavLink & { items: NonNullable<NavLink["item
   const Icon = item.icon
 
   useEffect(() => {
-    if (active) setOpen(true)
+    setOpen(active)
   }, [active])
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} render={<SidebarMenuItem />}>
-      <SidebarMenuButton isActive={active} tooltip={item.name} render={<Link href={item.href} />}>
+      {/* Rodzic aktywnej sekcji bez białego tła – podświetlona jest tylko aktywna podpozycja. */}
+      <SidebarMenuButton
+        isActive={active}
+        tooltip={item.name}
+        render={<Link href={item.href} />}
+        className={cn(ITEM_CLASS, "data-active:bg-transparent data-active:font-semibold data-active:shadow-none data-active:hover:bg-sidebar-accent")}
+      >
         <Icon />
         <span>{item.name}</span>
       </SidebarMenuButton>
       <CollapsibleTrigger
         render={<SidebarMenuAction />}
-        className="data-panel-open:rotate-90"
+        className="text-muted-foreground opacity-0 transition group-hover/menu-item:opacity-100 focus-visible:opacity-100 data-panel-open:rotate-90"
         aria-label={open ? `Zwiń: ${item.name}` : `Rozwiń: ${item.name}`}
       >
         <ChevronRightIcon />
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <SidebarMenuSub>
+        <SidebarMenuSub className="mx-0 ml-4 translate-x-0 gap-0.5 border-foreground/10 pr-0 pl-1.5">
           {item.items.map((sub) => (
             <SidebarMenuSubItem key={sub.href}>
-              <SidebarMenuSubButton isActive={isActive(url, sub.href) && (sub.match?.(url) ?? true)} render={<Link href={sub.href} />}>
+              <SidebarMenuSubButton
+                isActive={isActive(url, sub.href) && (sub.match?.(url) ?? true)}
+                render={<Link href={sub.href} />}
+                className="text-muted-foreground hover:text-foreground data-active:text-foreground h-8 translate-x-0 text-sm font-medium data-active:bg-card data-active:shadow-xs"
+              >
                 <span>{sub.name}</span>
               </SidebarMenuSubButton>
             </SidebarMenuSubItem>
@@ -89,7 +92,7 @@ function NavItem({ item, locked }: { item: NavLink; locked: boolean }) {
         isActive={isActive(url, item.href)}
         tooltip={item.name}
         render={<Link href={item.href} />}
-        className={locked ? "text-muted-foreground" : undefined}
+        className={cn(ITEM_CLASS, locked && "text-muted-foreground")}
       >
         <Icon />
         <span>{item.name}</span>
@@ -103,39 +106,51 @@ function NavItem({ item, locked }: { item: NavLink; locked: boolean }) {
   )
 }
 
+// Przełącznik szerokie / wąskie menu (tylko desktop; skrót Ctrl/⌘+B).
+function CollapseToggle() {
+  const { state, toggleSidebar, isMobile } = useSidebar()
+  if (isMobile) return null
+  const collapsed = state === "collapsed"
+  const Icon = collapsed ? PanelLeftOpenIcon : PanelLeftCloseIcon
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          tooltip={collapsed ? "Rozwiń menu" : undefined}
+          onClick={toggleSidebar}
+          className={cn(ITEM_CLASS, "text-muted-foreground hover:text-foreground")}
+        >
+          <Icon />
+          <span>Zwiń menu</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  )
+}
+
 export function AppSidebar() {
-  const { app, account, auth, modules } = usePage().props
+  const { modules } = usePage().props
   const { url } = usePage()
   const enabled = modules?.enabled ?? []
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href="/" />}>
-              <div className="bg-primary text-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg text-sm font-semibold">
-                {app.name.slice(0, 1).toUpperCase()}
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">
-                  {app.name}
-                  {modules?.bundle === "one" && <span className="text-muted-foreground font-normal"> ONE</span>}
-                </span>
-                <span className="text-muted-foreground truncate text-xs">{account?.name}</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
+    <Sidebar
+      collapsible="icon"
+      className="top-(--header-height) h-[calc(100svh-var(--header-height))]! group-data-[side=left]:border-r-0"
+    >
+      <SidebarContent className="pt-1">
+        <SidebarGroup className="py-1">
+          <SidebarMenu className="gap-0.5">
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={isActive(url, "/")} tooltip="Pulpit" render={<Link href="/" />}>
-                <LayoutDashboardIcon />
-                <span>Pulpit</span>
+              <SidebarMenuButton
+                isActive={isActive(url, "/")}
+                tooltip="Strona główna"
+                render={<Link href="/" />}
+                className={ITEM_CLASS}
+              >
+                <HomeIcon />
+                <span>Strona główna</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             {CORE_NAV.map((item) => (
@@ -144,9 +159,9 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Moduły</SidebarGroupLabel>
-          <SidebarMenu>
+        <SidebarGroup className="py-1">
+          <SidebarGroupLabel className="h-8 text-[13px] font-semibold text-sidebar-foreground/70">Moduły</SidebarGroupLabel>
+          <SidebarMenu className="gap-0.5">
             {MODULE_ORDER.map((key) => (
               <NavItem key={key} item={MODULES[key]} locked={!enabled.includes(key)} />
             ))}
@@ -155,41 +170,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        {auth && (
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
-                  <Avatar className="size-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg">{auth.user.initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{auth.user.name}</span>
-                    <span className="text-muted-foreground truncate text-xs">{auth.user.email_address}</span>
-                  </div>
-                  <ChevronsUpDownIcon className="ml-auto size-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="top" align="start" className="min-w-56">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel>
-                      {account?.name}
-                      {modules?.bundle === "one" && (
-                        <Badge variant="secondary" className="ml-2">
-                          ONE
-                        </Badge>
-                      )}
-                    </DropdownMenuLabel>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => router.delete("/session")}>
-                    <LogOutIcon />
-                    Wyloguj
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        )}
+        <CollapseToggle />
       </SidebarFooter>
     </Sidebar>
   )

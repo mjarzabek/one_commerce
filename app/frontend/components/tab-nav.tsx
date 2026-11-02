@@ -19,20 +19,24 @@ export function TabNav({
   value,
   onChange,
   label,
+  className: navClassName,
 }: {
   items: TabItem[]
   value: string
   onChange?: (value: string) => void
   label: string
+  className?: string
 }) {
   const className = (active: boolean) =>
     cn(
-      "-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
+      "inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
       active ? "border-primary text-foreground" : "text-muted-foreground hover:text-foreground border-transparent",
     )
 
+  // Dolna linia jako wewnętrzny cień (nie ramka) – podkreślenie aktywnej zakładki przykrywa ją bez wystawania,
+  // więc pasek przewija się tylko w poziomie.
   return (
-    <nav className="-mt-1 flex gap-1 overflow-x-auto border-b" aria-label={label}>
+    <nav className={cn("-mt-1 flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--border)]", navClassName)} aria-label={label}>
       {items.map((item) => {
         const active = item.value === value
         const Icon = item.icon

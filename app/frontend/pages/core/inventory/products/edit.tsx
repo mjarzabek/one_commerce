@@ -8,7 +8,7 @@ import { SaveBar } from "@/components/inventory/save-bar"
 import { MovementsPanel, StockPanel } from "@/components/inventory/stock-panels"
 import { catalogCrumbs, type CatalogOption, type ProductStock } from "@/components/inventory/types"
 import { PageBar } from "@/components/page-bar"
-import { TabNav } from "@/components/tab-nav"
+import { TabbedCard } from "@/components/tabbed-card"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -54,7 +54,7 @@ export default function InventoryProductEdit({ stock, variants = [], warehouses 
             description="Usuwa produkt razem z wariantami. Produktu z towarem, historią magazynową lub zamówieniami nie można usunąć – zmień mu status na „Zarchiwizowany”."
             url={`/inventory/products/${product.id}`}
             trigger={
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost">
                 <Trash2Icon />
                 Usuń produkt
               </Button>
@@ -63,7 +63,7 @@ export default function InventoryProductEdit({ stock, variants = [], warehouses 
         }
       />
 
-      <TabNav
+      <TabbedCard
         label="Sekcje produktu"
         value={tab}
         onChange={(value) => setTab(value as Tab)}
@@ -75,7 +75,7 @@ export default function InventoryProductEdit({ stock, variants = [], warehouses 
           ...(hasVariants ? [] : [{ value: "history", label: "Historia", icon: HistoryIcon }]),
           { value: "marketplace", label: "Marketplace", icon: StoreIcon },
         ]}
-      />
+      >
 
       {tab === "general" && <ProductGeneralFields state={state} {...props} />}
 
@@ -89,7 +89,7 @@ export default function InventoryProductEdit({ stock, variants = [], warehouses 
             <CardTitle>Warianty</CardTitle>
             <CardDescription>Każdy wariant ma własne SKU, EAN, ceny i stan. Kliknij wariant, żeby go edytować.</CardDescription>
             <CardAction>
-              <Link href={`/inventory/products/${product.id}/variants/new`} className={buttonVariants({ size: "sm" })}>
+              <Link href={`/inventory/products/${product.id}/variants/new`} className={buttonVariants()}>
                 <PlusIcon />
                 Dodaj wariant
               </Link>
@@ -135,7 +135,7 @@ export default function InventoryProductEdit({ stock, variants = [], warehouses 
                 {summary.available > 0 && " Najpierw wyzeruj stan produktu w zakładce „Stan”."}
               </p>
             </div>
-            <Link href={`/inventory/products/${product.id}/variants/new`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Link href={`/inventory/products/${product.id}/variants/new`} className={buttonVariants({ variant: "outline" })}>
               <PlusIcon />
               Dodaj wariant
             </Link>
@@ -197,6 +197,8 @@ export default function InventoryProductEdit({ stock, variants = [], warehouses 
           </CardContent>
         </Card>
       )}
+
+      </TabbedCard>
 
       <SaveBar
         visible={state.form.isDirty}

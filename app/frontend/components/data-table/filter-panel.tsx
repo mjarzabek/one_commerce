@@ -13,7 +13,7 @@ const ANY = "__any"
 export function FilterToggle({ schema, values, open, onToggle }: { schema: FilterSchema[]; values: FilterValues; open: boolean; onToggle: () => void }) {
   const count = activeFilterCount(schema, values)
   return (
-    <Button variant={open ? "secondary" : "outline"} size="sm" className="h-8" aria-expanded={open} aria-controls="filter-panel" onClick={onToggle}>
+    <Button variant={open ? "secondary" : "outline"} aria-expanded={open} aria-controls="filter-panel" onClick={onToggle}>
       <ListFilterIcon />
       Filtry
       {count > 0 && (
@@ -45,7 +45,17 @@ function Framed({ label, htmlFor, children, className }: { label: ReactNode; htm
 const bare = "h-full w-full min-w-0 bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground/60"
 
 // Panel filtrów nad tabelą rysowany ze schematu: gęsta siatka pól, Enter = zastosuj.
-export function FilterPanel({ schema, values, onApply }: { schema: FilterSchema[]; values: FilterValues; onApply: (values: FilterValues) => void }) {
+export function FilterPanel({
+  schema,
+  values,
+  onApply,
+  className,
+}: {
+  schema: FilterSchema[]
+  values: FilterValues
+  onApply: (values: FilterValues) => void
+  className?: string
+}) {
   const [draft, setDraft] = useState(values)
   useEffect(() => setDraft(values), [values])
   const set = (param: string, value: string) => setDraft((current) => ({ ...current, [param]: value }))
@@ -94,7 +104,7 @@ export function FilterPanel({ schema, values, onApply }: { schema: FilterSchema[
     <form
       id="filter-panel"
       aria-label="Filtry"
-      className="bg-card flex flex-col gap-3 rounded-xl border p-3 pt-4"
+      className={cn("bg-card flex flex-col gap-3 rounded-xl border p-3 pt-4", className)}
       onSubmit={(e) => {
         e.preventDefault()
         onApply(draft)
@@ -103,10 +113,10 @@ export function FilterPanel({ schema, values, onApply }: { schema: FilterSchema[
       <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">{schema.map(field)}</div>
       <div className="flex items-center justify-end gap-2">
         {changed && <span className="text-muted-foreground mr-auto text-xs">Zmiany nie są jeszcze zastosowane – Enter albo „Zastosuj”.</span>}
-        <Button type="button" variant="ghost" size="sm" onClick={() => onApply(emptyFilterValues(schema))}>
+        <Button type="button" variant="ghost" onClick={() => onApply(emptyFilterValues(schema))}>
           Wyczyść
         </Button>
-        <Button type="submit" size="sm">
+        <Button type="submit">
           Zastosuj
         </Button>
       </div>

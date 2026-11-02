@@ -22,7 +22,7 @@ export default function OrdersIndex({ orders }: { orders: Order[] }) {
       <PageBar
         breadcrumbs={[{ label: "Zamówienia" }]}
         actions={
-          <Button variant="outline" size="sm" disabled>
+          <Button variant="outline" disabled>
             Nowe zamówienie
           </Button>
         }
