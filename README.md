@@ -53,7 +53,8 @@ packs/
     panel/             # InertiaController (wspólne propsy), logowanie, pulpit
     orders/            # panel obsługi zamówień (Live lub MultiChannel)
     api/               # publiczne REST API /api/v1
-    catalog/ inventory/ customers/ payments/ shipping/ invoicing/ integrations/
+    inventory/         # Magazyn: katalogi, produkty, ceny, magazyny, stany, rezerwacje
+    customers/ payments/ shipping/ invoicing/ integrations/
   live/                # [Nazwa] Live
   multichannel/        # [Nazwa] MultiChannel
   chat/                # [Nazwa] Chat
@@ -99,9 +100,17 @@ Nowe komponenty shadcn/ui: konfiguracja jest w `components.json` (styl `base-nov
 ```bash
 curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/account
 curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/orders
+curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/products
 ```
 
-Tokeny mają zakresy (np. `orders:read`); endpointy modułów sprawdzają te same licencje co panel.
+| Endpoint | Zakres |
+| --- | --- |
+| `GET /api/v1/orders`, `/orders/:id` | `orders:read` |
+| `GET /api/v1/products`, `/products/:id` | `catalog:read` |
+| `GET /api/v1/stock` | `inventory:read` |
+| `GET /api/v1/customers`, `/customers/:id` | `customers:read` |
+
+Listy są stronicowane kursorem: `?limit=50&cursor=<meta.next_cursor>`. Endpointy danych wymagają tej samej licencji co panel zamówień (Live lub MultiChannel).
 
 ## Testy i jakość
 

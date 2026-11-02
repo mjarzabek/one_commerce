@@ -34,4 +34,5 @@ node_modules
 
 # Local tooling
 /.preview
+/.claude/
 .DS_Store

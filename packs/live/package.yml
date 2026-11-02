@@ -4,3 +4,6 @@ dependencies:
   - packs/core/platform
   - packs/core/panel
   - packs/core/licensing
+  - packs/core/inventory
+  - packs/core/customers
+  - packs/core/orders

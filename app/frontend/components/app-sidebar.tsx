@@ -24,14 +24,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { MODULE_ORDER, MODULES, ORDERS_PANEL, type ModuleInfo } from "@/lib/modules"
+import { CORE_NAV, MODULE_ORDER, MODULES, type NavLink } from "@/lib/modules"
 
 function isActive(currentUrl: string, href: string) {
   if (href === "/") return currentUrl === "/"
   return currentUrl === href || currentUrl.startsWith(`${href}/`) || currentUrl.startsWith(`${href}?`)
 }
 
-function NavItem({ item, locked }: { item: ModuleInfo; locked: boolean }) {
+function NavItem({ item, locked }: { item: NavLink; locked: boolean }) {
   const { url } = usePage()
   const Icon = item.icon
 
@@ -90,7 +90,9 @@ export function AppSidebar() {
                 <span>Pulpit</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <NavItem item={ORDERS_PANEL} locked={!modules?.ordersPanel} />
+            {CORE_NAV.map((item) => (
+              <NavItem key={item.href} item={item} locked={!modules?.ordersPanel} />
+            ))}
           </SidebarMenu>
         </SidebarGroup>
 

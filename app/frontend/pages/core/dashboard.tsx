@@ -1,7 +1,7 @@
 import { Head, Link, usePage } from "@inertiajs/react"
 import { ArrowRightIcon, LockIcon } from "lucide-react"
 
-import { PageHeader } from "@/components/page-header"
+import { PageBar } from "@/components/page-bar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -54,10 +54,14 @@ export default function Dashboard() {
   return (
     <>
       <Head title="Pulpit" />
-      <PageHeader
-        title={`Dzień dobry, ${firstName}`}
-        description={`Konto ${account?.name ?? ""}${modules?.bundle === "one" ? " · pakiet ONE" : ""}`}
-      />
+      <PageBar breadcrumbs={[{ label: "Pulpit" }]} />
+      <h1 className="text-xl font-semibold tracking-tight">
+        Dzień dobry, {firstName}
+        <span className="text-muted-foreground font-normal">
+          {" "}· {account?.name}
+          {modules?.bundle === "one" && " · pakiet ONE"}
+        </span>
+      </h1>
 
       <section className="space-y-3">
         <h2 className="text-muted-foreground text-sm font-medium">Obsługa zamówień</h2>

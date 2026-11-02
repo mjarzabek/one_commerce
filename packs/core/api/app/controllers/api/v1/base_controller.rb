@@ -34,6 +34,14 @@ module Api
           render_error(:payment_required, "Zamówienia są dostępne z modułem Live lub MultiChannel.")
         end
 
+        # Stronicowanie kursorem po rosnącym id: ?cursor=<id ostatniego elementu>&limit=50
+        def paginate(scope)
+          limit = params.fetch(:limit, 50).to_i.clamp(1, 100)
+          scope = scope.where(id: (params[:cursor].to_i + 1)..) if params[:cursor].present?
+          records = scope.reorder(:id).limit(limit + 1).to_a
+          [ records.first(limit), records.size > limit ? records[limit - 1].id : nil ]
+        end
+
         def render_error(status, message)
           render json: { error: { code: status, message: } }, status:
         end

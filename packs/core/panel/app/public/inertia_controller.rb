@@ -18,4 +18,14 @@ class InertiaController < ApplicationController
       { app: { name: Rails.configuration.x.app_name } }
     end
   end
+
+  private
+    # Błędy walidacji w formacie formularzy Inertia: { "name" => [...], "variants.0.sku" => [...] }.
+    def inertia_errors(record)
+      record.errors.each_with_object({}) do |error, result|
+        key = error.attribute.to_s.gsub(/\[(\d+)\]/, '.\1')
+        message = error.attribute == :base ? error.message : error.message.upcase_first
+        (result[key] ||= []) << message
+      end
+    end
 end

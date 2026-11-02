@@ -5,6 +5,7 @@ Rails.application.routes.draw do
   # Trasy pakietów: packs/**/config/routes/*.rb
   draw :panel         # logowanie, pulpit (Core)
   draw :orders        # panel obsługi zamówień (Core, przy Live lub MultiChannel)
+  draw :inventory     # magazyn: produkty, katalogi, stany, ceny (Core)
   draw :live          # [Nazwa] Live
   draw :multichannel  # [Nazwa] MultiChannel
   draw :chat          # [Nazwa] Chat

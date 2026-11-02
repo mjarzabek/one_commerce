@@ -1,4 +1,4 @@
-import { LayersIcon, MessagesSquareIcon, PackageIcon, RadioIcon, type LucideIcon } from "lucide-react"
+import { LayersIcon, MessagesSquareIcon, PackageIcon, RadioIcon, WarehouseIcon, type LucideIcon } from "lucide-react"
 
 import type { ModuleKey } from "@/types"
 
@@ -66,5 +66,13 @@ export const ORDERS_PANEL: ModuleInfo = {
     "Statusy i automatyczne akcje",
   ],
 }
+
+export type NavLink = Pick<ModuleInfo, "name" | "href" | "icon">
+
+// Ekrany Core dostępne razem z panelem zamówień (Live lub MultiChannel).
+export const CORE_NAV: NavLink[] = [
+  ORDERS_PANEL,
+  { name: "Magazyn", href: "/inventory", icon: WarehouseIcon },
+]
 
 export const MODULE_ORDER: ModuleKey[] = ["live", "multichannel", "chat"]
