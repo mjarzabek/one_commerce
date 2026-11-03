@@ -18,7 +18,7 @@ module Inventory
     def create
       catalog = Catalog.new(account: Current.account, position: catalogs.count, **catalog_params)
       if catalog.save
-        redirect_to inventory_settings_catalogs_path, notice: "Dodano katalog „#{catalog.name}”."
+        redirect_to inventory_settings_catalogs_path, notice: "Dodano katalog."
       else
         redirect_with_errors(catalog, to: inventory_settings_catalogs_path)
       end
@@ -27,7 +27,7 @@ module Inventory
     def update
       catalog = catalogs.find(params[:id])
       if catalog.update(catalog_params)
-        redirect_to inventory_settings_catalogs_path, notice: "Zapisano katalog „#{catalog.name}”."
+        redirect_to inventory_settings_catalogs_path, notice: "Zapisano katalog."
       else
         redirect_with_errors(catalog, to: inventory_settings_catalogs_path)
       end

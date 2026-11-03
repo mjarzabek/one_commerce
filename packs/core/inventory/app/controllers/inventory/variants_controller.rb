@@ -13,7 +13,7 @@ module Inventory
       variant = @parent.variants.build(account: Current.account, catalog_id: @parent.catalog_id, position: @parent.variants.count)
       variant.assign_attributes(variant_params)
       if variant.save
-        redirect_to edit_inventory_variant_path(variant, tab: "stock"), notice: "Dodano wariant „#{variant.name}”. Uzupełnij stan."
+        redirect_to edit_inventory_variant_path(variant, tab: "stock"), notice: "Dodano wariant."
       else
         redirect_with_errors(variant, to: new_inventory_product_variant_path(@parent, tab: params[:tab].presence))
       end

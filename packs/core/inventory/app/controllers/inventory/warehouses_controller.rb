@@ -17,7 +17,7 @@ module Inventory
       warehouse = Warehouse.new(account: Current.account, name: params[:name].to_s.strip,
         position: Warehouse.where(account: Current.account).maximum(:position).to_i + 1)
       if warehouse.save
-        redirect_to inventory_settings_warehouses_path, notice: "Dodano magazyn „#{warehouse.name}”. Zaznacz go w katalogach, które mają z niego korzystać."
+        redirect_to inventory_settings_warehouses_path, notice: "Dodano magazyn."
       else
         redirect_with_errors(warehouse, to: inventory_settings_warehouses_path)
       end
@@ -29,9 +29,7 @@ module Inventory
       if params.key?(:strict_control)
         strict = ActiveModel::Type::Boolean.new.cast(params[:strict_control])
         warehouse.update!(strict_control: strict)
-        notice = strict ? "Ścisła kontrola włączona - stan w magazynie „#{warehouse.name}” zmienisz tylko dokumentami magazynowymi." :
-                          "Ścisła kontrola wyłączona - stan w magazynie „#{warehouse.name}” można edytować na karcie produktu."
-        redirect_to inventory_settings_warehouses_path, notice:
+        redirect_to inventory_settings_warehouses_path, notice: strict ? "Włączono ścisłą kontrolę." : "Wyłączono ścisłą kontrolę."
       elsif warehouse.update(name: params[:name].to_s.strip)
         redirect_to inventory_settings_warehouses_path, notice: "Zapisano nazwę magazynu."
       else

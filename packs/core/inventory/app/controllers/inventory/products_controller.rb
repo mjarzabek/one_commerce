@@ -91,7 +91,7 @@ module Inventory
       catalog = catalogs.find(params.dig(:product, :catalog_id) || current_catalog.id)
       product = Product.new(account: Current.account, catalog:)
       # Nowy produkt prosty: od razu zakładka „Stan”, żeby uzupełnić stan.
-      save(product, notice: "Dodano produkt. Uzupełnij stan albo dodaj warianty.", redirect_tab: "stock")
+      save(product, notice: "Dodano produkt.", redirect_tab: "stock")
     end
 
     # Karta produktu z zakładkami: Ogólne, Ceny, Stan, Historia, Warianty, Marketplace.
@@ -159,7 +159,7 @@ module Inventory
       return redirect_back_or_to(inventory_root_path, inertia: { errors: { price: error } }) if error
 
       Inventory.set_price!(Current.account, @product.id, group, cents)
-      redirect_back_or_to inventory_root_path, notice: "Zapisano cenę „#{@product.display_name}”."
+      redirect_back_or_to inventory_root_path, notice: "Zapisano cenę."
     end
 
     # PATCH /inventory/products/:id/available  warehouse_id=…&available=5 - dostępne sztuki w magazynie (edycja z listy).
@@ -169,7 +169,7 @@ module Inventory
       return redirect_back_or_to(inventory_root_path, inertia: { errors: { available: "Podaj stan (0 lub więcej)" } }) unless available
 
       Inventory.set_available!(Current.account, @product.id, available, warehouse_id: warehouse.id, user: Current.user)
-      redirect_back_or_to inventory_root_path, notice: "Zapisano stan „#{@product.display_name}”."
+      redirect_back_or_to inventory_root_path, notice: "Zapisano stan."
     rescue Inventory::StrictControl, Inventory::NotSellable => e
       redirect_back_or_to inventory_root_path, inertia: { errors: { available: e.message } }
     end
@@ -191,9 +191,8 @@ module Inventory
         message = result.deleted.positive? ? "Usunięto #{result.deleted} #{products_word(result.deleted)}." : "Nie usunięto żadnego produktu."
         return { notice: message } if result.skipped.empty?
 
-        names = result.skipped.first(3).join(", ") + (result.skipped.size > 3 ? " i #{result.skipped.size - 3} innych" : "")
-        { alert: "#{message} Pominięto #{result.skipped.size} (#{names}) - mają towar, historię magazynową lub zamówienia; " \
-                 "zmień im status na „Zarchiwizowany”." }
+        skipped = "Pominięto #{result.skipped.size} - mają towar, historię magazynową lub zamówienia; zarchiwizuj je."
+        result.deleted.positive? ? { warning: "#{message} #{skipped}" } : { alert: "#{message} #{skipped}" }
       end
 
       def products_word(count)

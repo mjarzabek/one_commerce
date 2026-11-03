@@ -4,6 +4,9 @@ class InertiaController < ApplicationController
   include Accounts::Authentication
   include Licensing::RequiresModule
 
+  # Komunikaty: `notice` - sukces, `warning` - uwaga, `alert` - błąd (frontend pokazuje je jako kolorowe toasty).
+  add_flash_types :warning
+
   inertia_share do
     if Current.user
       {

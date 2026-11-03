@@ -18,8 +18,7 @@ module Inventory
     def create
       group = PriceGroup.new(account: Current.account, position: price_groups.count, **group_params)
       if group.save
-        redirect_to inventory_settings_price_groups_path,
-          notice: "Dodano grupę cenową „#{group.name}”. Zaznacz ją w katalogach, które mają z niej korzystać."
+        redirect_to inventory_settings_price_groups_path, notice: "Dodano grupę cenową."
       else
         redirect_with_errors(group, to: inventory_settings_price_groups_path)
       end
@@ -29,7 +28,7 @@ module Inventory
       group = price_groups.find(params[:id])
       if ActiveModel::Type::Boolean.new.cast(params[:default])
         group.make_default!
-        return redirect_to inventory_settings_price_groups_path, notice: "„#{group.name}” jest teraz domyślną grupą cenową."
+        return redirect_to inventory_settings_price_groups_path, notice: "Ustawiono domyślną grupę cenową."
       end
 
       if group.update(group_params)
@@ -50,7 +49,7 @@ module Inventory
       end
 
       group.destroy!
-      redirect_to inventory_settings_price_groups_path, notice: "Usunięto grupę cenową „#{group.name}” razem z jej cenami."
+      redirect_to inventory_settings_price_groups_path, notice: "Usunięto grupę cenową „#{group.name}”."
     end
 
     private

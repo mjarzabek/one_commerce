@@ -140,7 +140,7 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
         post "/inventory/products/bulk", params: { operation: "delete", ids: [ mug.id, stocked.id ] }
 
         expect(Inventory.products(account).map(&:name)).to contain_exactly("Szal", "Na stanie")
-        expect(flash[:alert]).to include("Usunięto 1 produkt", "Pominięto 1 (Na stanie)")
+        expect(flash[:warning]).to include("Usunięto 1 produkt", "Pominięto 1")
       end
 
       it "działa na wszystkich produktach pasujących do filtrów (wszystkie strony)" do

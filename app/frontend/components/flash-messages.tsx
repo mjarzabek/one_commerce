@@ -1,36 +1,24 @@
 import { usePage } from "@inertiajs/react"
-import { CircleAlertIcon, CircleCheckIcon, XIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef } from "react"
+import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { Toaster } from "@/components/ui/sonner"
 
-// Komunikaty z `redirect_to …, notice:/alert:` - widoczne do zamknięcia albo następnej wizyty.
+// Komunikaty z `redirect_to …, notice:/alert:` jako toasty - pływają nad treścią, więc nie przesuwają układu strony.
+// Zielony - sukces (`notice`), pomarańczowy - uwaga (`warning`), czerwony - błąd (`alert`).
+// Błąd i uwaga zostają do zamknięcia, potwierdzenie znika samo.
 export function FlashMessages() {
   const { flash } = usePage()
-  const [hidden, setHidden] = useState(false)
+  // Każda odpowiedź serwera daje nowy obiekt `flash`; StrictMode odpala efekt dwa razy dla tego samego.
+  const shown = useRef<typeof flash | null>(null)
 
-  useEffect(() => setHidden(false), [flash])
+  useEffect(() => {
+    if (!flash || shown.current === flash) return
+    shown.current = flash
+    if (flash.alert) toast.error(flash.alert, { duration: Infinity, closeButton: true })
+    if (flash.warning) toast.warning(flash.warning, { duration: Infinity, closeButton: true })
+    if (flash.notice) toast.success(flash.notice)
+  }, [flash])
 
-  const message = flash?.alert ?? flash?.notice
-  if (!message || hidden) return null
-
-  const isAlert = !!flash?.alert
-  const Icon = isAlert ? CircleAlertIcon : CircleCheckIcon
-
-  return (
-    <div
-      role={isAlert ? "alert" : "status"}
-      className={cn(
-        "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm",
-        isAlert ? "border-destructive/30 bg-destructive/10 text-destructive" : "bg-muted/50",
-      )}
-    >
-      <Icon className="size-4 shrink-0" />
-      <span className="flex-1">{message}</span>
-      <Button variant="ghost" size="icon-sm" onClick={() => setHidden(true)} aria-label="Zamknij">
-        <XIcon />
-      </Button>
-    </div>
-  )
+  return <Toaster position="bottom-right" />
 }

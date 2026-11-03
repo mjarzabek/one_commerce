@@ -18,9 +18,9 @@ module Inventory
       Inventory.update_source_setting!(Current.account, source, enabled:, warehouse_id: warehouse&.id)
 
       notice =
-        if warehouse then "Zamówienia z tego źródła będą realizowane z magazynu „#{warehouse.name}”."
-        elsif enabled then "Rezerwacje włączone - nowe zamówienia od razu blokują towar."
-        else "Rezerwacje wyłączone - towar zejdzie ze stanu przy wysyłce."
+        if warehouse then "Zapisano ustawienia."
+        elsif enabled then "Włączono rezerwacje."
+        else "Wyłączono rezerwacje."
         end
       redirect_back_or_to inventory_settings_general_path, notice:
     end

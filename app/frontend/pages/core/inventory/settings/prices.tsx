@@ -85,6 +85,7 @@ export default function InventorySettingsPrices({ priceGroups, sellable, currenc
         actions={
           <NameDialog
             title="Nowa grupa cenowa"
+            description="Po dodaniu zaznacz ją w katalogach, które mają z niej korzystać."
             action="/inventory/settings/prices"
             initial={{ name: "", currency: "PLN" }}
             submitLabel="Dodaj grupę"

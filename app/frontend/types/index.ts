@@ -2,6 +2,7 @@ export type ModuleKey = "live" | "multichannel" | "chat"
 
 export type FlashData = {
   notice?: string
+  warning?: string
   alert?: string
 }
 
