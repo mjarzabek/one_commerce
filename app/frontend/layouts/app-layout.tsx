@@ -7,8 +7,8 @@ import { TopBar } from "@/components/top-bar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 
 // Powłoka: górny pasek i sidebar stoją w miejscu, przewija się tylko obszar treści (zaokrąglony róg zostaje widoczny).
-// `scroll-region` – Inertia zapamiętuje i resetuje przewinięcie tego elementu przy nawigacji.
-// Stan menu (szerokie / zwinięte) zapisuje sidebar w ciasteczku `sidebar_state` – odtwarzamy go po przeładowaniu.
+// `scroll-region` - Inertia zapamiętuje i resetuje przewinięcie tego elementu przy nawigacji.
+// Stan menu (szerokie / zwinięte) zapisuje sidebar w ciasteczku `sidebar_state` - odtwarzamy go po przeładowaniu.
 const sidebarOpenFromCookie = () => !document.cookie.split("; ").includes("sidebar_state=false")
 
 export default function AppLayout({ children }: { children: ReactNode }) {

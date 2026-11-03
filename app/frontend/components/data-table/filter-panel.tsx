@@ -25,7 +25,7 @@ export function FilterToggle({ schema, values, open, onToggle }: { schema: Filte
   )
 }
 
-// Ramka pola z etykietą na krawędzi (jak w BaseLinkerze) – gęsto, bez osobnych wierszy na etykiety.
+// Ramka pola z etykietą na krawędzi (jak w BaseLinkerze) - gęsto, bez osobnych wierszy na etykiety.
 function Framed({ label, htmlFor, children, className }: { label: ReactNode; htmlFor?: string; children: ReactNode; className?: string }) {
   return (
     <div
@@ -112,7 +112,7 @@ export function FilterPanel({
     >
       <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">{schema.map(field)}</div>
       <div className="flex items-center justify-end gap-2">
-        {changed && <span className="text-muted-foreground mr-auto text-xs">Zmiany nie są jeszcze zastosowane – Enter albo „Zastosuj”.</span>}
+        {changed && <span className="text-muted-foreground mr-auto text-xs">Zmiany nie są jeszcze zastosowane - Enter albo „Zastosuj”.</span>}
         <Button type="button" variant="ghost" onClick={() => onApply(emptyFilterValues(schema))}>
           Wyczyść
         </Button>

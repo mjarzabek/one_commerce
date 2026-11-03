@@ -1,4 +1,4 @@
-# [Nazwa] – Live · MultiChannel · Chat
+# [Nazwa] - Live · MultiChannel · Chat
 
 Modularny monolit w Ruby on Rails 8.1 z frontendem Inertia.js + React + TypeScript.
 Jeden panel, trzy moduły sprzedawane osobno lub razem jako pakiet **ONE**.
@@ -42,7 +42,7 @@ app/
   frontend/            # React: strony, layouty, komponenty shadcn/ui
     entrypoints/       # inertia.tsx, application.css (motyw)
     pages/             # nazwy stron = nazwy komponentów Inertia, np. "live/index"
-    components/ui/     # shadcn/ui (Base UI) – kod w repo, edytuj śmiało
+    components/ui/     # shadcn/ui (Base UI) - kod w repo, edytuj śmiało
     lib/modules.ts     # opis modułów (menu, pulpit, ekrany „Dokup”)
   views/layouts/       # jeden layout HTML z tagami Vite
 packs/
@@ -88,7 +88,7 @@ Frontend dostaje stan licencji we wspólnych propsach (`modules.enabled`, `modul
 ## Dodawanie funkcji do modułu
 
 1. Model i logika w pakiecie modułu, np. `packs/live/app/models/live/session.rb`.
-2. Jeśli inny pakiet ma z tego korzystać – metoda w `packs/live/app/public/live.rb`.
+2. Jeśli inny pakiet ma z tego korzystać - metoda w `packs/live/app/public/live.rb`.
 3. Kontroler dziedziczy z `Live::BaseController`, trasa w `packs/live/config/routes/live.rb`.
 4. Strona React w `app/frontend/pages/live/…tsx`, renderowana przez `render inertia: "live/…"`.
 5. Testy obok kodu: `packs/live/spec/…`.

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useSyncExternalStore } from "react"
 export type Theme = "light" | "dark" | "system"
 
 // Motyw zapisany w localStorage pod `theme`. Ten sam klucz czyta skrypt w <head> (application.html.erb),
-// który ustawia klasę `.dark` przed pierwszym renderem – bez mignięcia jasnej strony.
+// który ustawia klasę `.dark` przed pierwszym renderem - bez mignięcia jasnej strony.
 const STORAGE_KEY = "theme"
 const listeners = new Set<() => void>()
 const media = () => window.matchMedia("(prefers-color-scheme: dark)")
@@ -45,7 +45,7 @@ export function useTheme() {
       if (next === "system") window.localStorage.removeItem(STORAGE_KEY)
       else window.localStorage.setItem(STORAGE_KEY, next)
     } catch {
-      // brak localStorage – motyw obowiązuje do przeładowania
+      // brak localStorage - motyw obowiązuje do przeładowania
     }
     applyTheme(next)
     listeners.forEach((listener) => listener())

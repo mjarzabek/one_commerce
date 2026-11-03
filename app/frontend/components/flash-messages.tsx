@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-// Komunikaty z `redirect_to …, notice:/alert:` – widoczne do zamknięcia albo następnej wizyty.
+// Komunikaty z `redirect_to …, notice:/alert:` - widoczne do zamknięcia albo następnej wizyty.
 export function FlashMessages() {
   const { flash } = usePage()
   const [hidden, setHidden] = useState(false)

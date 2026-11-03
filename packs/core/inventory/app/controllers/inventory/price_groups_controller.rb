@@ -46,7 +46,7 @@ module Inventory
       only_in = group.catalogs.includes(:catalog_price_groups).select { |catalog| catalog.price_group_ids == [ group.id ] }
       if only_in.any?
         return redirect_to inventory_settings_price_groups_path,
-          alert: "To jedyna grupa cenowa katalogu „#{only_in.map(&:name).join("”, „")}” – najpierw zaznacz tam inną."
+          alert: "To jedyna grupa cenowa katalogu „#{only_in.map(&:name).join("”, „")}” - najpierw zaznacz tam inną."
       end
 
       group.destroy!

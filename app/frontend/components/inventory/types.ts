@@ -6,7 +6,7 @@ export type PriceGroup = { id: number; name: string; currency: string; default: 
 
 export type PriceInputs = Record<string, string | null>
 
-export type StockWarehouse = { id: number; name: string; on_hand: number; reserved: number }
+export type StockWarehouse = { id: number; name: string; on_hand: number; reserved: number; strict_control: boolean }
 
 export type ProductStock = {
   warehouses: StockWarehouse[]

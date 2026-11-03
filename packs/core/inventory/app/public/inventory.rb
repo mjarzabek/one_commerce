@@ -1,15 +1,15 @@
 # Publiczne API Inventory (w panelu sekcja „Produkty”): magazyny, katalogi, produkty proste i wariantowe, grupy cenowe, stany i rezerwacje.
-# Jedyne miejsce, które zmienia stany – moduły nie dotykają tabel inventory_*.
+# Jedyne miejsce, które zmienia stany - moduły nie dotykają tabel inventory_*.
 #
 # Ceny i stany mają produkty sprzedawalne: proste i warianty (produkt główny wariantowy ich nie ma).
 # Magazyny są wspólne dla konta, a katalog wybiera, z których korzysta. Stan produktu jest osobny w każdym
-# magazynie jego katalogu; stan łączny = suma tych magazynów. Zamówienie realizowane jest z jednego magazynu –
+# magazynie jego katalogu; stan łączny = suma tych magazynów. Zamówienie realizowane jest z jednego magazynu -
 # wybranego dla źródła zamówień (Live / E-commerce / Ręczne) w ustawieniach źródeł.
 #
 # Cykl życia sztuki w zamówieniu:
 #   z rezerwacją:   reserve!(…, holder: order) → commit!(order) przy wysyłce / release!(order) przy anulowaniu
 #   bez rezerwacji: deduct!(…, holder: order) przy wysyłce
-#   zwrot:          restock!(order) – odwraca sprzedaż w tych samych magazynach
+#   zwrot:          restock!(order) - odwraca sprzedaż w tych samych magazynach
 #
 # Posiadacz (holder) to dowolny rekord z `id`; jeśli ma metodę `inventory_label` (np. „Zamówienie 2026/000004”),
 # trafia ona do rezerwacji i historii ruchów.
@@ -28,6 +28,9 @@ module Inventory
   end
 
   class NotSellable < ArgumentError; end
+
+  # Ręczna zmiana stanu w magazynie ze ścisłą kontrolą - tam stan zmieniają tylko dokumenty magazynowe.
+  class StrictControl < StandardError; end
 
   module_function
 
@@ -58,13 +61,13 @@ module Inventory
     catalogs(account).first
   end
 
-  # Grupy cenowe konta albo – z `catalog:` – grupy, z których korzysta katalog.
+  # Grupy cenowe konta albo - z `catalog:` - grupy, z których korzysta katalog.
   def price_groups(account, catalog: nil)
     scope = PriceGroup.where(account:).ordered
     catalog ? scope.where(id: CatalogPriceGroup.where(catalog:).select(:price_group_id)) : scope
   end
 
-  # Domyślna grupa cenowa konta. Z `catalog:` – grupa domyślna konta, jeśli katalog z niej korzysta,
+  # Domyślna grupa cenowa konta. Z `catalog:` - grupa domyślna konta, jeśli katalog z niej korzysta,
   # w przeciwnym razie pierwsza z grup katalogu.
   def default_price_group(account, catalog: nil)
     ensure_setup!(account)
@@ -73,8 +76,8 @@ module Inventory
     price_groups(account, catalog:).first || PriceGroup.find_by!(account:, default: true)
   end
 
-  # Magazyny konta albo – z `catalog:` – magazyny, z których korzysta katalog.
-  # Domyślna grupa cenowa dla produktów (wg katalogu pierwszego z nich) – np. dla zamówienia z Live.
+  # Magazyny konta albo - z `catalog:` - magazyny, z których korzysta katalog.
+  # Domyślna grupa cenowa dla produktów (wg katalogu pierwszego z nich) - np. dla zamówienia z Live.
   def default_price_group_for(account, product_ids)
     catalog_id = Product.where(account:, id: Array(product_ids).compact).order(:id).pick(:catalog_id)
     default_price_group(account, catalog: catalog_id && Catalog.find(catalog_id))
@@ -97,7 +100,7 @@ module Inventory
     SourceSetting.find_by(account:, source: source.to_s)&.warehouse_id || warehouses(account).first.id
   end
 
-  # { "live" => { enabled: true, warehouse_id: 1 }, … } – z wartościami domyślnymi dla nieustawionych źródeł.
+  # { "live" => { enabled: true, warehouse_id: 1 }, … } - z wartościami domyślnymi dla nieustawionych źródeł.
   def source_settings(account)
     stored = SourceSetting.where(account:).index_by(&:source)
     default_warehouse = warehouses(account).first&.id
@@ -147,7 +150,7 @@ module Inventory
   end
 
   # Migawki produktów sprzedawalnych konta po id lub SKU (opcjonalnie w katalogu),
-  # z ceną z grupy (domyślnie – domyślnej). Produkty główne wariantowe są pomijane.
+  # z ceną z grupy (domyślnie - domyślnej). Produkty główne wariantowe są pomijane.
   def find_products(account, ids: nil, skus: nil, catalog: nil, price_group: nil)
     price_group ||= default_price_group(account)
     scope = Product.where(account:).includes(:prices, :parent, :variants)
@@ -160,7 +163,7 @@ module Inventory
   DeleteResult = Data.define(:deleted, :skipped)
 
   # Usuwa produkty główne razem z wariantami. Pomija (i zwraca w `skipped`) produkty, które mają towar
-  # lub rezerwacje, historię ruchów albo są w zamówieniach – takie należy zarchiwizować.
+  # lub rezerwacje, historię ruchów albo są w zamówieniach - takie należy zarchiwizować.
   def delete_products!(account, ids)
     deleted = 0
     skipped = []
@@ -200,8 +203,8 @@ module Inventory
 
   # --- Stany ---------------------------------------------------------------------------------
 
-  # Dostępne sztuki (on_hand - reserved): { product_id => liczba } – stan łączny (suma magazynów katalogu)
-  # albo stan jednego magazynu (`warehouse_id`). Dla produktu głównego wariantowego – suma wariantów.
+  # Dostępne sztuki (on_hand - reserved): { product_id => liczba } - stan łączny (suma magazynów katalogu)
+  # albo stan jednego magazynu (`warehouse_id`). Dla produktu głównego wariantowego - suma wariantów.
   def available(account, product_ids, warehouse_id: nil)
     ids = Array(product_ids).map(&:to_i)
     children = Product.where(account:, parent_id: ids).pluck(:parent_id, :id).group_by(&:first).transform_values { _1.map(&:last) }
@@ -225,23 +228,27 @@ module Inventory
     StockItem.where(account:).order(:warehouse_id, :product_id)
   end
 
-  # Przyjęcie towaru do magazynu (domyślnie: pierwszy magazyn katalogu produktu).
+  # Przyjęcie towaru do magazynu bez dokumentu (domyślnie: pierwszy magazyn katalogu produktu).
+  # Rzuca StrictControl w magazynie ze ścisłą kontrolą.
   def receive!(account, product_id, quantity, warehouse_id: nil, reason: :receipt, reference: nil, user: nil)
     raise ArgumentError, "Ilość musi być dodatnia" unless quantity.positive?
 
     StockItem.transaction do
       product = sellable_product(account, product_id)
       item = locked_items(product, [ warehouse_id || warehouse_ids_for(product).first ]).first
+      ensure_manual_changes!(item)
       change_on_hand!(item, quantity, reason:, reference:, user:)
     end
   end
 
-  # Korekta inwentaryzacyjna: ustawia stan fizyczny produktu w magazynie.
+  # Ręczna zmiana stanu (edycja pola „Na stanie”): ustawia stan fizyczny produktu w magazynie,
+  # a historia zapisuje, z ilu na ile. Rzuca StrictControl w magazynie ze ścisłą kontrolą.
   def set_on_hand!(account, product_id, on_hand, warehouse_id: nil, reference: nil, user: nil)
     StockItem.transaction do
       product = sellable_product(account, product_id)
       item = locked_items(product, [ warehouse_id || warehouse_ids_for(product).first ]).first
       delta = on_hand - item.on_hand
+      ensure_manual_changes!(item) unless delta.zero?
       change_on_hand!(item, delta, reason: :adjustment, reference:, user:) unless delta.zero?
       item
     end
@@ -302,7 +309,7 @@ module Inventory
     StockItem.transaction { settle_reservation!(Reservation.where(account:).active.lock.find(reservation_id), :released) }
   end
 
-  # Ręczna realizacja jednej aktywnej rezerwacji – towar schodzi ze stanu teraz.
+  # Ręczna realizacja jednej aktywnej rezerwacji - towar schodzi ze stanu teraz.
   def fulfill_reservation!(account, reservation_id, user: nil)
     StockItem.transaction { settle_reservation!(Reservation.where(account:).active.lock.find(reservation_id), :fulfilled, user:) }
   end
@@ -357,7 +364,7 @@ module Inventory
 
   def sellable_product(account, product_id)
     product = Product.find_by!(account:, id: product_id)
-    raise NotSellable, "Produkt „#{product.name}” ma warianty – wybierz wariant" unless product.sellable?
+    raise NotSellable, "Produkt „#{product.name}” ma warianty - wybierz wariant" unless product.sellable?
 
     product
   end
@@ -392,7 +399,7 @@ module Inventory
   end
   private_class_method :settle_reservation!
 
-  # Zablokowany wiersz stanu z wystarczającą liczbą dostępnych sztuk – albo InsufficientStock.
+  # Zablokowany wiersz stanu z wystarczającą liczbą dostępnych sztuk - albo InsufficientStock.
   def available_item(product, warehouse_id, quantity)
     item = locked_items(product, [ warehouse_id ]).first
     raise InsufficientStock.new(product_id: product.id, requested: quantity, available: item.available) if item.available < quantity
@@ -400,6 +407,13 @@ module Inventory
     item
   end
   private_class_method :available_item
+
+  def ensure_manual_changes!(item)
+    return unless item.warehouse.strict_control?
+
+    raise StrictControl, "Magazyn „#{item.warehouse.name}” ma ścisłą kontrolę - stan zmienisz tylko dokumentem magazynowym"
+  end
+  private_class_method :ensure_manual_changes!
 
   def change_on_hand!(item, delta, reason:, reference:, user:, holder: nil)
     before = item.on_hand

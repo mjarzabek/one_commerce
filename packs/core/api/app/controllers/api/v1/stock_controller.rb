@@ -1,6 +1,6 @@
 module Api
   module V1
-    # GET /api/v1/stock – stany produktów w magazynach (?cursor=, ?limit=)
+    # GET /api/v1/stock - stany produktów w magazynach (?cursor=, ?limit=)
     class StockController < BaseController
       before_action -> { require_scope!("inventory:read") }
       before_action :require_orders_panel!

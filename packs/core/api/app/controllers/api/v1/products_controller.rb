@@ -1,6 +1,6 @@
 module Api
   module V1
-    # GET /api/v1/products – produkty (proste i wariantowe z wariantami) z cenami i stanami (?catalog_id=, ?cursor=, ?limit=)
+    # GET /api/v1/products - produkty (proste i wariantowe z wariantami) z cenami i stanami (?catalog_id=, ?cursor=, ?limit=)
     class ProductsController < BaseController
       before_action -> { require_scope!("catalog:read") }
       before_action :require_orders_panel!

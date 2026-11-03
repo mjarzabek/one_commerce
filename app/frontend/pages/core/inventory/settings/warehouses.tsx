@@ -1,4 +1,4 @@
-import { Head, Link } from "@inertiajs/react"
+import { Head, Link, router } from "@inertiajs/react"
 import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 
@@ -10,11 +10,12 @@ import { PageBar } from "@/components/page-bar"
 import { RowActions } from "@/components/row-actions"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 type Props = {
-  warehouses: { id: number; name: string; units: number; catalogs: CatalogOption[] }[]
+  warehouses: { id: number; name: string; units: number; strict_control: boolean; catalogs: CatalogOption[] }[]
 }
 
 // Akcje wiersza magazynu (⋯): zmiana nazwy i usunięcie.
@@ -71,15 +72,23 @@ export default function InventorySettingsWarehouses({ warehouses }: Props) {
           />
         }
       />
-      {/* Zakładki w karcie razem z tabelą – jak na liście produktów. */}
+      {/* Zakładki w karcie razem z tabelą - jak na liście produktów. */}
       <Card className="gap-0 py-0">
         <InventorySettingsTabs className="mt-0 px-2" />
+        <CardHeader className="py-4">
+          <CardTitle>Magazyny</CardTitle>
+          <CardDescription>
+            Bez ścisłej kontroli stan to zwykłe pole na karcie produktu - zmieniasz je ręcznie, a historia zapisuje, z ilu na ile. Ze ścisłą
+            kontrolą stan w magazynie zmieniają tylko dokumenty magazynowe (wkrótce) i zamówienia.
+          </CardDescription>
+        </CardHeader>
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead className="pl-4">Nazwa</TableHead>
               <TableHead>Katalogi</TableHead>
               <TableHead className="text-right">Sztuk na stanie</TableHead>
+              <TableHead className="text-right">Ścisła kontrola</TableHead>
               <TableHead className="pr-4" />
             </TableRow>
           </TableHeader>
@@ -90,7 +99,7 @@ export default function InventorySettingsWarehouses({ warehouses }: Props) {
                 <TableCell>
                   {warehouse.catalogs.length === 0 ? (
                     <span className="text-muted-foreground text-sm">
-                      Nieużywany –{" "}
+                      Nieużywany -{" "}
                       <Link href="/inventory/settings/catalogs" className="text-foreground underline underline-offset-4">
                         zaznacz w katalogu
                       </Link>
@@ -106,6 +115,15 @@ export default function InventorySettingsWarehouses({ warehouses }: Props) {
                   )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{warehouse.units}</TableCell>
+                <TableCell className="text-right">
+                  <Switch
+                    aria-label={`Ścisła kontrola - ${warehouse.name}`}
+                    checked={warehouse.strict_control}
+                    onCheckedChange={(strict_control) =>
+                      router.patch(`/inventory/settings/warehouses/${warehouse.id}`, { strict_control }, { preserveScroll: true })
+                    }
+                  />
+                </TableCell>
                 <TableCell className="pr-4 text-right">
                   <WarehouseActions warehouse={warehouse} canDelete={warehouses.length > 1} />
                 </TableCell>

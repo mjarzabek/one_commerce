@@ -59,7 +59,7 @@ export const ORDERS_PANEL: ModuleInfo = {
   name: "Zamówienia",
   href: "/orders",
   icon: PackageIcon,
-  tagline: "Panel obsługi zamówień – w cenie modułu Live lub MultiChannel.",
+  tagline: "Panel obsługi zamówień - w cenie modułu Live lub MultiChannel.",
   features: [
     "Zamówienia ze wszystkich źródeł na jednej liście",
     "Masowe etykiety InPost i faktury (Fakturownia, KSeF)",
@@ -67,7 +67,7 @@ export const ORDERS_PANEL: ModuleInfo = {
   ],
 }
 
-// `items` – podpozycje rozwijane w menu; `match` zawęża, które adresy podświetlają podpozycję (domyślnie `href` i podstrony).
+// `items` - podpozycje rozwijane w menu; `match` zawęża, które adresy podświetlają podpozycję (domyślnie `href` i podstrony).
 export type NavLink = Pick<ModuleInfo, "name" | "href" | "icon"> & {
   items?: { name: string; href: string; match?: (url: string) => boolean }[]
 }

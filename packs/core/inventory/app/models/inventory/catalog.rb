@@ -26,7 +26,7 @@ module Inventory
       catalog_warehouses.reject(&:marked_for_destruction?).map(&:warehouse_id)
     end
 
-    # Zaznaczone grupy cenowe z formularza katalogu. Odznaczenie grupy nie kasuje cen produktów – tylko je ukrywa.
+    # Zaznaczone grupy cenowe z formularza katalogu. Odznaczenie grupy nie kasuje cen produktów - tylko je ukrywa.
     def price_group_ids=(ids)
       ids = Array(ids).compact_blank.map(&:to_i).uniq
       catalog_price_groups.each { _1.mark_for_destruction unless ids.include?(_1.price_group_id) }
@@ -53,7 +53,7 @@ module Inventory
         errors.add(:price_group_ids, "Grupa cenowa nie należy do konta") if foreign_groups.any?
       end
 
-      # Nie odpinamy magazynu, w którym produkty z katalogu mają towar – ten stan zniknąłby ze stanu łącznego.
+      # Nie odpinamy magazynu, w którym produkty z katalogu mają towar - ten stan zniknąłby ze stanu łącznego.
       def removed_warehouses_empty
         removed = catalog_warehouses.select(&:marked_for_destruction?).map(&:warehouse_id)
         return if removed.empty?

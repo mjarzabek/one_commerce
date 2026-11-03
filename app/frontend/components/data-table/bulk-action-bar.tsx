@@ -1,6 +1,7 @@
 import { ChevronDownIcon, XIcon } from "lucide-react"
 import type { ReactNode } from "react"
 
+import { FloatingBar } from "@/components/floating-bar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
@@ -15,7 +16,7 @@ type BulkActionBarProps = {
   onAll?: () => void
 }
 
-// Pasek akcji masowych przyklejony do dołu ekranu – widoczny, gdy coś jest zaznaczone.
+// Pasek akcji masowych przyklejony do dołu ekranu - widoczny, gdy coś jest zaznaczone.
 export function BulkActionBar({ count, onClear, children, total, pageSelected = false, onPage, onAll }: BulkActionBarProps) {
   if (count === 0) return null
 
@@ -27,14 +28,14 @@ export function BulkActionBar({ count, onClear, children, total, pageSelected = 
   )
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
+    <FloatingBar>
       <div
         role="toolbar"
         aria-label="Akcje na zaznaczonych"
         className="bg-popover text-popover-foreground ring-foreground/10 pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-xl p-2 pl-3 shadow-lg ring-1"
       >
         {onPage && onAll ? (
-          // Zaznaczanie schowane w menu licznika – dwa kliknięcia, więc nie da się go wywołać przypadkiem.
+          // Zaznaczanie schowane w menu licznika - dwa kliknięcia, więc nie da się go wywołać przypadkiem.
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -62,6 +63,6 @@ export function BulkActionBar({ count, onClear, children, total, pageSelected = 
           <XIcon />
         </Button>
       </div>
-    </div>
+    </FloatingBar>
   )
 }

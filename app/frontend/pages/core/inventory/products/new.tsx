@@ -3,9 +3,9 @@ import { FileTextIcon, TagsIcon } from "lucide-react"
 
 import { PricesPanel } from "@/components/inventory/prices-panel"
 import { priceGroupsForCatalog, ProductGeneralFields, useProductForm, type ProductFormProps } from "@/components/inventory/product-form"
-import { SaveBar } from "@/components/inventory/save-bar"
 import { catalogCrumbs } from "@/components/inventory/types"
 import { PageBar } from "@/components/page-bar"
+import { SaveBar } from "@/components/save-bar"
 import { TabbedCard } from "@/components/tabbed-card"
 import { useTabParam } from "@/hooks/use-tab-param"
 

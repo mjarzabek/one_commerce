@@ -1,7 +1,7 @@
 module Api
   module V1
-    # GET /api/v1/orders – zamówienia konta od najnowszych (?status=, ?source=, ?cursor=, ?limit=)
-    # GET /api/v1/orders/:id – zamówienie z pozycjami i historią statusów
+    # GET /api/v1/orders - zamówienia konta od najnowszych (?status=, ?source=, ?cursor=, ?limit=)
+    # GET /api/v1/orders/:id - zamówienie z pozycjami i historią statusów
     class OrdersController < BaseController
       before_action -> { require_scope!("orders:read") }
       before_action :require_orders_panel!

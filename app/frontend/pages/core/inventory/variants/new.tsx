@@ -2,10 +2,10 @@ import { Head } from "@inertiajs/react"
 import { FileTextIcon, TagsIcon } from "lucide-react"
 
 import { PricesPanel } from "@/components/inventory/prices-panel"
-import { SaveBar } from "@/components/inventory/save-bar"
 import { catalogCrumbs } from "@/components/inventory/types"
 import { useVariantForm, VariantGeneralFields, type VariantFormProps } from "@/components/inventory/variant-form"
 import { PageBar } from "@/components/page-bar"
+import { SaveBar } from "@/components/save-bar"
 import { TabbedCard } from "@/components/tabbed-card"
 import { useTabParam } from "@/hooks/use-tab-param"
 

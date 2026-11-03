@@ -1,6 +1,6 @@
 module Api
   module V1
-    # GET /api/v1/account – konto powiązane z tokenem i jego moduły.
+    # GET /api/v1/account - konto powiązane z tokenem i jego moduły.
     class AccountsController < BaseController
       def show
         render json: {

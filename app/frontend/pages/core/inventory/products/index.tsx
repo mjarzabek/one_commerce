@@ -68,7 +68,7 @@ export default function InventoryProducts(props: Props) {
   const [filtersOpen, setFiltersOpen] = usePersistentState("inventory-products-filters-open", false)
   const multiWarehouse = warehouses.length > 1
 
-  // Aktualne parametry listy (wyszukiwanie, filtry, widok) – te same trafiają do akcji „wszystkie pasujące”.
+  // Aktualne parametry listy (wyszukiwanie, filtry, widok) - te same trafiają do akcji „wszystkie pasujące”.
   const listParams = (): Params => ({ ...filters, ...view, q: query, per: pagination.per })
 
   // Zmiana wyszukiwania, filtrów, katalogu lub magazynu wraca na 1. stronę i czyści zaznaczenie.
@@ -214,7 +214,7 @@ export default function InventoryProducts(props: Props) {
         </div>
 
         <div className="overflow-x-auto border-t">
-          {/* Stały układ kolumn – szerokości nie zależą od treści, więc tabela nie „skacze” przy zmianie strony. */}
+          {/* Stały układ kolumn - szerokości nie zależą od treści, więc tabela nie „skacze” przy zmianie strony. */}
           <Table className="min-w-[960px] table-fixed">
             <colgroup>
               <col className="w-10" />
@@ -323,13 +323,13 @@ export default function InventoryProducts(props: Props) {
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground truncate" title={product.sku ?? undefined}>
-                          {product.sku ?? "—"}
+                          {product.sku ?? "-"}
                         </TableCell>
                         <TableCell className="text-muted-foreground truncate" title={product.ean ?? undefined}>
-                          {product.ean ?? "—"}
+                          {product.ean ?? "-"}
                         </TableCell>
                         <TableCell className="truncate text-right tabular-nums" title={product.price ?? undefined}>
-                          {product.price ?? "—"}
+                          {product.price ?? "-"}
                         </TableCell>
                         <TableCell className={cn("truncate text-right font-medium tabular-nums", product.stock <= 0 && "text-destructive")}>{product.stock}</TableCell>
                         <TableCell className="truncate pr-4">
@@ -353,13 +353,13 @@ export default function InventoryProducts(props: Props) {
                               </Link>
                             </TableCell>
                             <TableCell className="text-muted-foreground truncate" title={variant.sku ?? undefined}>
-                              {variant.sku ?? "—"}
+                              {variant.sku ?? "-"}
                             </TableCell>
                             <TableCell className="text-muted-foreground truncate" title={variant.ean ?? undefined}>
-                              {variant.ean ?? "—"}
+                              {variant.ean ?? "-"}
                             </TableCell>
                             <TableCell className="truncate text-right tabular-nums" title={variant.price ?? undefined}>
-                              {variant.price ?? "—"}
+                              {variant.price ?? "-"}
                             </TableCell>
                             <TableCell className={cn("truncate text-right tabular-nums", variant.stock <= 0 && "text-destructive")}>{variant.stock}</TableCell>
                             <TableCell className="pr-4" />
@@ -414,7 +414,7 @@ export default function InventoryProducts(props: Props) {
         </DropdownMenu>
         <ConfirmDelete
           title={`Usunąć ${selectedCount} ${productsWord(selectedCount)}?`}
-          description="Produkty z wariantami zostaną usunięte razem z wariantami. Produkty z towarem, historią magazynową lub zamówieniami zostaną pominięte – takie archiwizuj."
+          description="Produkty z wariantami zostaną usunięte razem z wariantami. Produkty z towarem, historią magazynową lub zamówieniami zostaną pominięte - takie archiwizuj."
           onConfirm={() => bulk({ operation: "delete" })}
           trigger={
             <Button variant="destructive">

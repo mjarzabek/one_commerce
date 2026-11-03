@@ -29,7 +29,7 @@ export function PriceFields({
               <Input
                 id={`price-${group.id}`}
                 inputMode="decimal"
-                placeholder="—"
+                placeholder="-"
                 className="pr-12"
                 value={value[String(group.id)] ?? ""}
                 onChange={(e) => onChange({ ...value, [String(group.id)]: e.target.value })}

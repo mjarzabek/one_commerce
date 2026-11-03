@@ -28,7 +28,7 @@ export function useSelection() {
     setAllMatching(false)
   }
 
-  // Liczba zaznaczonych – w trybie „wszystkie” liczona od łącznej liczby pasujących.
+  // Liczba zaznaczonych - w trybie „wszystkie” liczona od łącznej liczby pasujących.
   const count = (total: number) => (allMatching ? Math.max(total - ids.size, 0) : ids.size)
 
   return { ids, allMatching, isSelected, toggle, setPage, selectAll, clear, count }

@@ -1,6 +1,6 @@
 require "rails_helper"
 
-# Styk Produktów (stany) z zamówieniami – scenariusze obejmujące kilka pakietów Core.
+# Styk Produktów (stany) z zamówieniami - scenariusze obejmujące kilka pakietów Core.
 RSpec.describe "Produkty i zamówienia", type: :request do
   let(:user) { create(:user, modules: [ :live ]) }
   let(:account) { user.accounts.first }

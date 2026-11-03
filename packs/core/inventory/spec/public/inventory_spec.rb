@@ -15,7 +15,7 @@ RSpec.describe Inventory do
   def level(warehouse) = described_class.stock_levels(account, [ product.id ]).dig(product.id, warehouse.id)
 
   describe ".ensure_setup!" do
-    it "tworzy magazyn główny, domyślny katalog z tym magazynem i grupę cenową – tylko raz" do
+    it "tworzy magazyn główny, domyślny katalog z tym magazynem i grupę cenową - tylko raz" do
       2.times { described_class.ensure_setup!(account) }
 
       expect(described_class.catalogs(account).sole).to have_attributes(name: "Domyślny")
@@ -37,13 +37,13 @@ RSpec.describe Inventory do
       expect(described_class.find_products(account, ids: [ kubek.id ], price_group: allegro).sole.price_cents).to eq(5_400)
     end
 
-    it "tworzy produkt wariantowy – produkt główny z własnym SKU i warianty z własnymi SKU i cenami" do
+    it "tworzy produkt wariantowy - produkt główny z własnym SKU i warianty z własnymi SKU i cenami" do
       lena = described_class.create_product!(account, { name: "Sukienka Lena", sku: "LENA", ean: "111" },
         variants: [ { name: "S", sku: "LENA-S", ean: "222", price_cents: 19_900 }, { name: "M", sku: "LENA-M", price_cents: 21_900 } ])
 
       expect(lena.variants.map(&:sku)).to eq(%w[LENA-S LENA-M])
       expect(described_class.find_products(account, ids: [ lena.id, *lena.variants.map(&:id) ]).map(&:name))
-        .to contain_exactly("Sukienka Lena – S", "Sukienka Lena – M")
+        .to contain_exactly("Sukienka Lena - S", "Sukienka Lena - M")
     end
 
     it "wymaga SKU produktu prostego i wariantu, ale nie produktu głównego z wariantami" do
@@ -153,6 +153,16 @@ RSpec.describe Inventory do
       described_class.reserve!(account, product.id, 2, holder:, warehouse_id: main.id)
 
       expect { described_class.set_on_hand!(account, product.id, 1) }.to raise_error(ActiveRecord::RecordInvalid)
+    end
+
+    it "w magazynie ze ścisłą kontrolą blokuje ręczne zmiany, ale nie zamówienia" do
+      main.update!(strict_control: true)
+
+      expect { described_class.set_on_hand!(account, product.id, 9) }.to raise_error(Inventory::StrictControl)
+      expect { described_class.receive!(account, product.id, 1) }.to raise_error(Inventory::StrictControl)
+      expect(described_class.set_on_hand!(account, product.id, 2).on_hand).to eq(2)
+      described_class.deduct!(account, product.id, 1, holder:, warehouse_id: main.id)
+      expect(level(main).on_hand).to eq(1)
     end
 
     it "odrzuca magazyn, z którego katalog produktu nie korzysta" do

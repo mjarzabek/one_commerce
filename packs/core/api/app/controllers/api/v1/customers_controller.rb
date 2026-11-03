@@ -1,6 +1,6 @@
 module Api
   module V1
-    # GET /api/v1/customers – klienci z tożsamościami w kanałach (?cursor=, ?limit=)
+    # GET /api/v1/customers - klienci z tożsamościami w kanałach (?cursor=, ?limit=)
     class CustomersController < BaseController
       before_action -> { require_scope!("customers:read") }
       before_action :require_orders_panel!

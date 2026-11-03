@@ -30,7 +30,7 @@ export default function InventorySettingsGeneral({ warehouses, sources }: Props)
     <>
       <Head title="Ustawienia ogólne" />
       <PageBar breadcrumbs={[{ label: "Produkty", href: "/inventory" }, { label: "Ustawienia", href: "/inventory/settings" }, { label: "Ogólne" }]} />
-      {/* Zakładki w karcie – jak na liście produktów. */}
+      {/* Zakładki w karcie - jak na liście produktów. */}
       <Card className="gap-0 py-0">
         <InventorySettingsTabs className="mt-0 px-2" />
         <CardHeader className="py-4">
@@ -74,7 +74,7 @@ export default function InventorySettingsGeneral({ warehouses, sources }: Props)
                   </TableCell>
                   <TableCell className="pr-6 text-right">
                     <Switch
-                      aria-label={`Rezerwacja – ${source.label}`}
+                      aria-label={`Rezerwacja - ${source.label}`}
                       checked={setting.enabled}
                       onCheckedChange={(enabled) => updateSource(source.key, { enabled })}
                     />

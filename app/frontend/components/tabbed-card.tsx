@@ -4,7 +4,7 @@ import { TabNav, type TabItem } from "@/components/tab-nav"
 import { Card } from "@/components/ui/card"
 
 // Biała karta z zakładkami na górze i treścią zakładki pod nimi (edycja produktu, wariantu).
-// Karty wewnątrz (panele zakładek) tracą własną ramkę i cień – stają się sekcjami tej karty,
+// Karty wewnątrz (panele zakładek) tracą własną ramkę i cień - stają się sekcjami tej karty,
 // kolejne oddziela linia.
 export function TabbedCard({
   label,

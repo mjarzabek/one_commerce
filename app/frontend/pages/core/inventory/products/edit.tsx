@@ -4,10 +4,10 @@ import { BoxesIcon, FileTextIcon, HistoryIcon, LayersIcon, LinkIcon, PlusIcon, S
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
 import { PricesPanel } from "@/components/inventory/prices-panel"
 import { priceGroupsForCatalog, ProductGeneralFields, useProductForm, type ProductFormProps } from "@/components/inventory/product-form"
-import { SaveBar } from "@/components/inventory/save-bar"
 import { MovementsPanel, StockPanel } from "@/components/inventory/stock-panels"
 import { catalogCrumbs, type CatalogOption, type ProductStock } from "@/components/inventory/types"
 import { PageBar } from "@/components/page-bar"
+import { SaveBar } from "@/components/save-bar"
 import { TabbedCard } from "@/components/tabbed-card"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -36,7 +36,7 @@ const TABS = ["general", "prices", "variants", "stock", "history", "marketplace"
 type Tab = (typeof TABS)[number]
 
 // Karta produktu w zakładkach. Produkt prosty: Ogólne, Ceny, Warianty, Stan, Historia, Marketplace.
-// Produkt z wariantami: Ogólne, Warianty, Stan (wariant × magazyn), Marketplace – ceny i stany są na wariantach.
+// Produkt z wariantami: Ogólne, Warianty, Stan (wariant × magazyn), Marketplace - ceny i stany są na wariantach.
 export default function InventoryProductEdit({ stock, variants = [], warehouses = [], summary, ...props }: Props) {
   const { product, catalog } = props
   const state = useProductForm(product)
@@ -51,7 +51,7 @@ export default function InventoryProductEdit({ stock, variants = [], warehouses 
         actions={
           <ConfirmDelete
             title={`Usunąć produkt „${product.name}”?`}
-            description="Usuwa produkt razem z wariantami. Produktu z towarem, historią magazynową lub zamówieniami nie można usunąć – zmień mu status na „Zarchiwizowany”."
+            description="Usuwa produkt razem z wariantami. Produktu z towarem, historią magazynową lub zamówieniami nie można usunąć - zmień mu status na „Zarchiwizowany”."
             url={`/inventory/products/${product.id}`}
             trigger={
               <Button variant="ghost">
@@ -114,8 +114,8 @@ export default function InventoryProductEdit({ stock, variants = [], warehouses 
                     </Link>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{variant.sku}</TableCell>
-                  <TableCell className="text-muted-foreground">{variant.ean ?? "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums">{variant.price ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{variant.ean ?? "-"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{variant.price ?? "-"}</TableCell>
                   <TableCell className={cn("pr-6 text-right font-medium tabular-nums", variant.available <= 0 && "text-destructive")}>{variant.available}</TableCell>
                 </TableRow>
               ))}
@@ -143,7 +143,7 @@ export default function InventoryProductEdit({ stock, variants = [], warehouses 
         </Card>
       )}
 
-      {tab === "stock" && stock && <StockPanel productId={product.id!} label={product.name} stock={stock} />}
+      {tab === "stock" && stock && <StockPanel productId={product.id!} stock={stock} />}
 
       {tab === "stock" && !stock && (
         <Card className="gap-0 py-0">
@@ -200,8 +200,9 @@ export default function InventoryProductEdit({ stock, variants = [], warehouses 
 
       </TabbedCard>
 
+      {/* Zakładka „Stan” ma własny pasek zapisu stanów. */}
       <SaveBar
-        visible={state.form.isDirty}
+        visible={state.form.isDirty && tab !== "stock"}
         processing={state.form.processing}
         onSave={() => state.save(tab)}
         onDiscard={() => {

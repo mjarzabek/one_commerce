@@ -1,10 +1,10 @@
 # Publiczne API licencjonowania. Jedyne miejsce, które odpowiada na pytanie
-# „czy to konto ma dostęp do modułu X?” – w kontrolerach, jobach, webhookach i API.
+# „czy to konto ma dostęp do modułu X?” - w kontrolerach, jobach, webhookach i API.
 module Licensing
   MODULES = %i[live multichannel chat].freeze
   BUNDLES = { one: MODULES }.freeze
 
-  # Moduły, które tworzą zamówienia – przy nich klient dostaje panel obsługi zamówień.
+  # Moduły, które tworzą zamówienia - przy nich klient dostaje panel obsługi zamówień.
   ORDER_SOURCES = %i[live multichannel].freeze
 
   TRIAL_DAYS = 14

@@ -11,7 +11,7 @@ module Orders
             id: order.id,
             number: order.number,
             source: SOURCE_LABELS.fetch(order.source),
-            customer: order.customer_name.presence || "—",
+            customer: order.customer_name.presence || "-",
             total: Orders.format_money(order.total_cents, order.currency),
             status: STATUS_LABELS.fetch(order.status)
           }

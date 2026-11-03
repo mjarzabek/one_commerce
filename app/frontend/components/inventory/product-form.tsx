@@ -87,7 +87,7 @@ export function ProductGeneralFields({
             <Field data-invalid={!!error("sku")}>
               <FieldLabel htmlFor="sku">SKU</FieldLabel>
               <Input id="sku" value={form.data.sku} onChange={(e) => form.setData("sku", e.target.value)} aria-invalid={!!error("sku")} />
-              {product.hasVariants && <FieldDescription>Opcjonalne – warianty mają własne SKU.</FieldDescription>}
+              {product.hasVariants && <FieldDescription>Opcjonalne - warianty mają własne SKU.</FieldDescription>}
               <FieldError>{error("sku")}</FieldError>
             </Field>
             <Field>

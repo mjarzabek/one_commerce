@@ -13,7 +13,7 @@ scope "inventory", module: :inventory, as: :inventory do
   end
   resources :products, only: %i[new create edit update destroy] do
     post :bulk, on: :collection
-    post :adjustments, on: :member
+    patch :stock, on: :member
     resources :variants, shallow: true, only: %i[new create edit update destroy]
   end
   resources :reservations, only: [] do

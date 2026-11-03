@@ -23,17 +23,17 @@ module Orders
 
   module_function
 
-  # Tworzy zamówienie z pozycjami i rezerwuje towar – wszystko albo nic.
+  # Tworzy zamówienie z pozycjami i rezerwuje towar - wszystko albo nic.
   #
   # items:    [{ product_id:, quantity:, unit_price_cents: (opcjonalnie, domyślnie cena z grupy cenowej) }]
-  #           – produkt prosty albo wariant (nie produkt główny wariantowy)
+  #           - produkt prosty albo wariant (nie produkt główny wariantowy)
   #           albo pozycja spoza katalogu: [{ sku:, name:, quantity:, unit_price_cents:, tax_rate: }]
-  # customer: { channel:, external_id:, handle:, name:, email:, phone: } – z tożsamością w kanale
-  #           albo { name:, email:, phone: } – zamówienie ręczne; nil – bez klienta.
+  # customer: { channel:, external_id:, handle:, name:, email:, phone: } - z tożsamością w kanale
+  #           albo { name:, email:, phone: } - zamówienie ręczne; nil - bez klienta.
   #
   # Ceny i waluta pochodzą z `price_group` (domyślnie: domyślna grupa katalogu zamawianych produktów).
   # Zamówienie realizowane jest z jednego magazynu: `warehouse_id` albo magazynu ustawionego dla źródła
-  # (Produkty › Ustawienia › Ogólne › Źródła zamówień). Towar jest rezerwowany od razu, jeśli źródło ma włączone rezerwacje –
+  # (Produkty › Ustawienia › Ogólne › Źródła zamówień). Towar jest rezerwowany od razu, jeśli źródło ma włączone rezerwacje -
   # wtedy przy braku towaru w tym magazynie rzuca Inventory::InsufficientStock. Bez rezerwacji towar schodzi
   # ze stanu dopiero przy wysyłce.
   #
@@ -152,11 +152,11 @@ module Orders
     items.each do |item|
       if item[:product_id]
         product = products.fetch(item[:product_id].to_i) do
-          raise ActiveRecord::RecordNotFound, "Produkt #{item[:product_id]} nie istnieje albo ma warianty – wybierz wariant"
+          raise ActiveRecord::RecordNotFound, "Produkt #{item[:product_id]} nie istnieje albo ma warianty - wybierz wariant"
         end
         unit_price_cents = item.fetch(:unit_price_cents, product.price_cents)
         if unit_price_cents.nil?
-          raise ArgumentError, "Produkt #{product.sku} nie ma ceny w grupie cenowej zamówienia – podaj unit_price_cents"
+          raise ArgumentError, "Produkt #{product.sku} nie ma ceny w grupie cenowej zamówienia - podaj unit_price_cents"
         end
 
         order.items.build(account:, product_id: product.id, sku: product.sku, name: product.name, tax_rate: product.tax_rate,

@@ -99,7 +99,7 @@ export default function InventorySettingsPrices({ priceGroups, sellable, currenc
           </NameDialog>
         }
       />
-      {/* Zakładki w karcie razem z tabelą – jak na liście produktów. */}
+      {/* Zakładki w karcie razem z tabelą - jak na liście produktów. */}
       <Card className="gap-0 py-0">
         <InventorySettingsTabs className="mt-0 px-2" />
         <Table>
@@ -125,7 +125,7 @@ export default function InventorySettingsPrices({ priceGroups, sellable, currenc
                 <TableCell>
                   {group.catalogs.length === 0 ? (
                     <span className="text-muted-foreground text-sm">
-                      Nieużywana –{" "}
+                      Nieużywana -{" "}
                       <Link href="/inventory/settings/catalogs" className="text-foreground underline underline-offset-4">
                         zaznacz w katalogu
                       </Link>

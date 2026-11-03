@@ -44,7 +44,7 @@ function NavGroup({ item }: { item: NavLink & { items: NonNullable<NavLink["item
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} render={<SidebarMenuItem />}>
-      {/* Rodzic aktywnej sekcji bez białego tła – podświetlona jest tylko aktywna podpozycja. */}
+      {/* Rodzic aktywnej sekcji bez białego tła - podświetlona jest tylko aktywna podpozycja. */}
       <SidebarMenuButton
         isActive={active}
         tooltip={item.name}

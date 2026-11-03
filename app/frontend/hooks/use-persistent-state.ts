@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-// Stan zapamiętany w przeglądarce (localStorage) – np. czy panel filtrów jest rozwinięty.
+// Stan zapamiętany w przeglądarce (localStorage) - np. czy panel filtrów jest rozwinięty.
 // Gdy localStorage jest niedostępny (tryb prywatny, blokada), działa jak zwykły useState.
 export function usePersistentState<T>(key: string, fallback: T): [T, (value: T) => void] {
   const [value, setValue] = useState<T>(() => {
@@ -17,7 +17,7 @@ export function usePersistentState<T>(key: string, fallback: T): [T, (value: T) 
     try {
       window.localStorage.setItem(key, JSON.stringify(next))
     } catch {
-      // brak dostępu do localStorage – trudno, stan zostaje tylko w pamięci
+      // brak dostępu do localStorage - trudno, stan zostaje tylko w pamięci
     }
   }
 

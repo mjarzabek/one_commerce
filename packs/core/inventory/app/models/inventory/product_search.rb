@@ -1,11 +1,11 @@
 module Inventory
   # Lista produktów katalogu (produkty główne): wyszukiwanie, filtry, sortowanie i stronicowanie.
   #
-  # FILTERS opisują też pola formularza – frontend rysuje je i chipy ze `schema`. Typy:
-  #   :text        – parametr `key`, „zawiera”
-  #   :select      – parametr `key`, wartość z `options`
-  #   :range       – parametry `key_min` / `key_max`, liczby całkowite
-  #   :money_range – parametry `key_min` / `key_max`, kwoty („99,90”) w groszach
+  # FILTERS opisują też pola formularza - frontend rysuje je i chipy ze `schema`. Typy:
+  #   :text        - parametr `key`, „zawiera”
+  #   :select      - parametr `key`, wartość z `options`
+  #   :range       - parametry `key_min` / `key_max`, liczby całkowite
+  #   :money_range - parametry `key_min` / `key_max`, kwoty („99,90”) w groszach
   #
   # Produkt wariantowy pasuje, gdy pasuje on albo którykolwiek wariant; stan i cena liczone są dla całej
   # rodziny (scope'y w Product).
@@ -59,7 +59,7 @@ module Inventory
       end
     end
 
-    # Produkty bieżącej strony z wariantami i cenami (`stock_value`, `min_price` – patrz Product.with_family_metrics).
+    # Produkty bieżącej strony z wariantami i cenami (`stock_value`, `min_price` - patrz Product.with_family_metrics).
     def records
       @records ||= pagy.records(scope.order(Arel.sql("#{SORT_COLUMNS.fetch(sort)} #{direction} NULLS LAST"), :id))
         .includes(:prices, variants: :prices).to_a

@@ -16,8 +16,8 @@ const buttonVariants = cva(
       },
       size: {
         // Skala kontrolek (wspólna z Input i SelectTrigger): xs 28 · sm 32 · default 36 · lg 40 px.
-        // default – akcje strony, formularze, paski narzędzi, filtry, dialogi;
-        // sm – gęste miejsca (paginacja, karty na pulpicie); xs – wewnątrz wierszy tabel i chipów.
+        // default - akcje strony, formularze, paski narzędzi, filtry, dialogi;
+        // sm - gęste miejsca (paginacja, karty na pulpicie); xs - wewnątrz wierszy tabel i chipów.
         default: "h-9 gap-1.5 px-3 has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5",
         xs: "h-7 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         sm: "h-8 gap-1.5 px-2.5 in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",

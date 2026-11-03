@@ -12,8 +12,8 @@ export type TabItem = {
   error?: boolean
 }
 
-// Zakładki pod górnym paskiem – jeden wygląd w całym panelu. Z `href` działają jak linki (sekcje),
-// bez – przełączają widok na stronie (`onChange`).
+// Zakładki pod górnym paskiem - jeden wygląd w całym panelu. Z `href` działają jak linki (sekcje),
+// bez - przełączają widok na stronie (`onChange`).
 export function TabNav({
   items,
   value,
@@ -33,7 +33,7 @@ export function TabNav({
       active ? "border-primary text-foreground" : "text-muted-foreground hover:text-foreground border-transparent",
     )
 
-  // Dolna linia jako wewnętrzny cień (nie ramka) – podkreślenie aktywnej zakładki przykrywa ją bez wystawania,
+  // Dolna linia jako wewnętrzny cień (nie ramka) - podkreślenie aktywnej zakładki przykrywa ją bez wystawania,
   // więc pasek przewija się tylko w poziomie.
   return (
     <nav className={cn("-mt-1 flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--border)]", navClassName)} aria-label={label}>

@@ -1,8 +1,9 @@
 import { CheckIcon, RotateCcwIcon } from "lucide-react"
 
+import { FloatingBar } from "@/components/floating-bar"
 import { Button } from "@/components/ui/button"
 
-// Pasek zapisu przyklejony do dołu ekranu – widoczny, gdy formularz ma niezapisane zmiany (albo zawsze, np. przy nowym produkcie).
+// Pasek zapisu przyklejony do dołu ekranu - widoczny, gdy formularz ma niezapisane zmiany (albo zawsze, np. przy nowym produkcie).
 export function SaveBar({
   visible,
   processing,
@@ -21,7 +22,7 @@ export function SaveBar({
   return (
     <>
       <div className="h-16" aria-hidden />
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
+      <FloatingBar>
         <div
           role="region"
           aria-label="Zapisywanie"
@@ -39,7 +40,7 @@ export function SaveBar({
             {processing ? "Zapisywanie…" : label}
           </Button>
         </div>
-      </div>
+      </FloatingBar>
     </>
   )
 }

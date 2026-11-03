@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils"
 export type PaginationState = { page: number; pages: number; per: number; total: number }
 
 // Zawsze 5 pozycji między strzałkami, żeby paginacja nie zmieniała szerokości.
-// Okno przesuwa się o jedną stronę – zawsze widać poprzednią i następną:
+// Okno przesuwa się o jedną stronę - zawsze widać poprzednią i następną:
 //   początek ‹ 1 2 3 … 20 ›   środek ‹ 9 10 11 … 20 ›   koniec ‹ 16 17 18 19 20 ›
-// Przy maksymalnie 5 stronach – wszystkie numery.
+// Przy maksymalnie 5 stronach - wszystkie numery.
 export function pageWindow(page: number, pages: number): (number | "gap")[] {
   if (pages <= 5) return Array.from({ length: pages }, (_, index) => index + 1)
   if (page <= 2) return [1, 2, 3, "gap", pages]
@@ -19,7 +19,7 @@ export function pageWindow(page: number, pages: number): (number | "gap")[] {
   return [page - 1, page, page + 1, "gap", pages]
 }
 
-// „…” – po kliknięciu pole do wpisania numeru strony (Enter przechodzi).
+// „…” - po kliknięciu pole do wpisania numeru strony (Enter przechodzi).
 function GapJump({ pages, onJump }: { pages: number; onJump: (page: number) => void }) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState("")
@@ -48,7 +48,7 @@ function GapJump({ pages, onJump }: { pages: number; onJump: (page: number) => v
         min={1}
         max={pages}
         inputMode="numeric"
-        aria-label={`Numer strony (1–${pages})`}
+        aria-label={`Numer strony (1-${pages})`}
         placeholder="nr"
         className="h-8 w-14 px-1.5 text-center tabular-nums"
         value={value}
@@ -62,7 +62,7 @@ function GapJump({ pages, onJump }: { pages: number; onJump: (page: number) => v
   )
 }
 
-// Stronicowanie listy: „[1–25 ▾] z 53 produkty” (liczba na stronę w menu) i ‹ 1 2 … 7 ›.
+// Stronicowanie listy: „[1-25 ▾] z 53 produkty” (liczba na stronę w menu) i ‹ 1 2 … 7 ›.
 export function Pagination({
   pagination,
   onPage,
@@ -91,7 +91,7 @@ export function Pagination({
           <DropdownMenuTrigger
             render={
               <Button variant="ghost" size="sm" className="text-foreground -ml-2 px-2 tabular-nums" aria-label="Liczba pozycji na stronę">
-                {first}–{last}
+                {first}-{last}
                 <ChevronDownIcon data-icon="inline-end" />
               </Button>
             }

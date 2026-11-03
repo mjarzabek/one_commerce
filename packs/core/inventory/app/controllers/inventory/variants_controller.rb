@@ -13,7 +13,7 @@ module Inventory
       variant = @parent.variants.build(account: Current.account, catalog_id: @parent.catalog_id, position: @parent.variants.count)
       variant.assign_attributes(variant_params)
       if variant.save
-        redirect_to edit_inventory_variant_path(variant, tab: "stock"), notice: "Dodano wariant „#{variant.name}”. Przyjmij towar na stan."
+        redirect_to edit_inventory_variant_path(variant, tab: "stock"), notice: "Dodano wariant „#{variant.name}”. Uzupełnij stan."
       else
         redirect_with_errors(variant, to: new_inventory_product_variant_path(@parent, tab: params[:tab].presence))
       end
@@ -37,7 +37,7 @@ module Inventory
       redirect_to edit_inventory_product_path(parent, tab: "variants"), notice: "Usunięto wariant „#{@variant.name}”."
     rescue ActiveRecord::InvalidForeignKey
       redirect_to edit_inventory_variant_path(@variant),
-        alert: "Nie można usunąć wariantu, który ma historię magazynową lub zamówienia – zarchiwizuj produkt."
+        alert: "Nie można usunąć wariantu, który ma historię magazynową lub zamówienia - zarchiwizuj produkt."
     end
 
     private

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 const REASONS: Record<string, { icon: LucideIcon; className: string }> = {
   Przyjęcie: { icon: ArrowDownToLineIcon, className: "text-emerald-700 dark:text-emerald-400" },
   Sprzedaż: { icon: ShoppingCartIcon, className: "text-sky-700 dark:text-sky-400" },
-  Korekta: { icon: SlidersHorizontalIcon, className: "text-amber-700 dark:text-amber-400" },
+  "Zmiana ręczna": { icon: SlidersHorizontalIcon, className: "text-amber-700 dark:text-amber-400" },
   Zwrot: { icon: Undo2Icon, className: "text-violet-700 dark:text-violet-400" },
 }
 

@@ -2,7 +2,7 @@ import { StarIcon } from "lucide-react"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
-// Gwiazdka przy wartości domyślnej (np. domyślna grupa cenowa) – z podpowiedzią.
+// Gwiazdka przy wartości domyślnej (np. domyślna grupa cenowa) - z podpowiedzią.
 export function DefaultStar() {
   return (
     <Tooltip>

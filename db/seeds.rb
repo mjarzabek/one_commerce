@@ -1,9 +1,9 @@
 # Dane demonstracyjne: `bin/rails db:seed`
 #
 # Trzy konta pokazują różne pakiety:
-#   one@example.com          – pakiet ONE (wszystkie moduły)
-#   live@example.com         – tylko Live (z panelem zamówień)
-#   chat@example.com         – tylko Chat (bez panelu zamówień)
+#   one@example.com          - pakiet ONE (wszystkie moduły)
+#   live@example.com         - tylko Live (z panelem zamówień)
+#   chat@example.com         - tylko Chat (bez panelu zamówień)
 # Hasło dla wszystkich: password123
 #
 # Konta ONE i Live dostają katalog z wariantami, stany magazynowe i kilka zamówień.

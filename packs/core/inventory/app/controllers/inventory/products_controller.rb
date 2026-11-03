@@ -3,7 +3,7 @@ module Inventory
   class ProductsController < BaseController
     STATUS_LABELS = Product::STATUS_LABELS
 
-    before_action :set_product, only: %i[edit update destroy adjustments]
+    before_action :set_product, only: %i[edit update destroy stock]
 
     # Lista produktów katalogu: wyszukiwanie, filtry ze schematu ProductSearch::FILTERS, sortowanie, strony.
     def index
@@ -11,7 +11,7 @@ module Inventory
       group = search.price_group
       products = search.records
       variant_stock = Inventory.available(Current.account, products.flat_map { _1.variants.map(&:id) }, warehouse_id: warehouse&.id)
-      price_label = ->(cents) { cents.compact.uniq.sort.values_at(0, -1).compact.uniq.map { Inventory.format_price(_1, group.currency) }.join(" – ").presence }
+      price_label = ->(cents) { cents.compact.uniq.sort.values_at(0, -1).compact.uniq.map { Inventory.format_price(_1, group.currency) }.join(" - ").presence }
 
       render inertia: "core/inventory/products/index", props: {
         products: products.map do |product|
@@ -41,10 +41,10 @@ module Inventory
       }
     end
 
-    # POST /inventory/products/bulk – akcja na zaznaczonych produktach (`ids[]`) albo na wszystkich
+    # POST /inventory/products/bulk - akcja na zaznaczonych produktach (`ids[]`) albo na wszystkich
     # pasujących do wyszukiwania i filtrów (`all=true` + te same parametry co lista).
     #   operation=delete | operation=status&new_status=archived
-    # (`new_status`, nie `status` – `status` to filtr listy.)
+    # (`new_status`, nie `status` - `status` to filtr listy.)
     def bulk
       all = ActiveModel::Type::Boolean.new.cast(params[:all])
       ids = all ? build_search.first.ids - Array(params[:excluded_ids]).map(&:to_i) : Array(params[:ids]).map(&:to_i)
@@ -70,7 +70,7 @@ module Inventory
         redirect_to inventory_root_path(catalog_id: @product.catalog_id), notice: "Usunięto produkt „#{@product.name}”."
       else
         redirect_to edit_inventory_product_path(@product),
-          alert: "Nie można usunąć produktu, który ma towar, historię magazynową lub zamówienia – zmień status na „Zarchiwizowany”."
+          alert: "Nie można usunąć produktu, który ma towar, historię magazynową lub zamówienia - zmień status na „Zarchiwizowany”."
       end
     end
 
@@ -82,8 +82,8 @@ module Inventory
     def create
       catalog = catalogs.find(params.dig(:product, :catalog_id) || current_catalog.id)
       product = Product.new(account: Current.account, catalog:)
-      # Nowy produkt prosty: od razu zakładka „Stan”, żeby przyjąć towar.
-      save(product, notice: "Dodano produkt. Przyjmij towar na stan albo dodaj warianty.", redirect_tab: "stock")
+      # Nowy produkt prosty: od razu zakładka „Stan”, żeby uzupełnić stan.
+      save(product, notice: "Dodano produkt. Uzupełnij stan albo dodaj warianty.", redirect_tab: "stock")
     end
 
     # Karta produktu z zakładkami: Ogólne, Ceny, Stan, Historia, Warianty, Marketplace.
@@ -108,7 +108,7 @@ module Inventory
       end
       props[:summary] = {
         available: Inventory.available(Current.account, [ @product.id ]).fetch(@product.id),
-        price: prices.uniq.sort.values_at(0, -1).compact.uniq.map { Inventory.format_price(_1, group.currency) }.join(" – ").presence,
+        price: prices.uniq.sort.values_at(0, -1).compact.uniq.map { Inventory.format_price(_1, group.currency) }.join(" - ").presence,
         priceGroup: group.name
       }
       render inertia: "core/inventory/products/edit", props:
@@ -118,32 +118,26 @@ module Inventory
       save(@product, notice: "Zapisano zmiany.")
     end
 
-    # POST /inventory/products/:id/adjustments  mode=receive|set, warehouse_id, quantity, note
-    def adjustments
-      warehouse = Inventory.warehouses(Current.account, catalog: @product.catalog).find(params[:warehouse_id])
-      quantity = Integer(params[:quantity].to_s, 10, exception: false)
-      note = params[:note].presence
+    # PATCH /inventory/products/:id/stock  stock[<warehouse_id>]=<stan na stanie>
+    # Zwykła edycja stanu w magazynach bez ścisłej kontroli; każda zmiana trafia do historii (z ilu na ile).
+    def stock
+      warehouse_ids = Inventory.warehouses(Current.account, catalog: @product.catalog).ids.map(&:to_s)
+      levels = params.expect(stock: warehouse_ids).to_h
+      invalid = levels.keys.reject { parse_on_hand(levels[_1]) }
+      return stock_errors(invalid.to_h { [ _1, "Podaj stan (0 lub więcej)" ] }) if invalid.any?
 
-      case params[:mode]
-      when "receive"
-        return quantity_error("Podaj liczbę sztuk większą od zera") unless quantity&.positive?
-
-        Inventory.receive!(Current.account, @product.id, quantity, warehouse_id: warehouse.id, reference: note, user: Current.user)
-        notice = "Przyjęto #{quantity} szt. do: #{warehouse.name}."
-      when "set"
-        return quantity_error("Podaj stan (0 lub więcej)") unless quantity && quantity >= 0
-
-        Inventory.set_on_hand!(Current.account, @product.id, quantity, warehouse_id: warehouse.id, reference: note, user: Current.user)
-        notice = "Ustawiono stan #{quantity} szt. w: #{warehouse.name}."
-      else
-        return quantity_error("Nieznany rodzaj zmiany")
+      warehouse_id = nil
+      StockItem.transaction do
+        levels.each do |id, value|
+          warehouse_id = id
+          Inventory.set_on_hand!(Current.account, @product.id, parse_on_hand(value), warehouse_id: id.to_i, user: Current.user)
+        end
       end
-
-      redirect_back_or_to edit_path(@product, tab: "stock"), notice:
+      redirect_back_or_to edit_path(@product, tab: "stock"), notice: "Zapisano stan."
     rescue ActiveRecord::RecordInvalid => e
-      quantity_error(e.record.errors.full_messages.to_sentence)
-    rescue Inventory::NotSellable => e
-      quantity_error(e.message)
+      stock_errors(warehouse_id => e.record.errors.messages.values.flatten.to_sentence.upcase_first)
+    rescue Inventory::StrictControl, Inventory::NotSellable => e
+      stock_errors(warehouse_id => e.message)
     end
 
     private
@@ -151,7 +145,7 @@ module Inventory
         warehouses = Inventory.warehouses(Current.account, catalog: current_catalog).to_a
         # Kolumna i filtr „Stan”: łącznie (domyślnie) albo w wybranym magazynie.
         warehouse = warehouses.find { _1.id == params[:warehouse_id].to_i }
-        # Kolumna, sortowanie i filtr „Cena”: wybrana grupa cenowa katalogu (domyślnie – domyślna grupa katalogu).
+        # Kolumna, sortowanie i filtr „Cena”: wybrana grupa cenowa katalogu (domyślnie - domyślna grupa katalogu).
         groups = price_groups(current_catalog).to_a
         group = groups.find { _1.id == params[:price_group_id].to_i } || groups.first
         search = ProductSearch.new(account: Current.account, catalog: current_catalog,
@@ -164,7 +158,7 @@ module Inventory
         return { notice: message } if result.skipped.empty?
 
         names = result.skipped.first(3).join(", ") + (result.skipped.size > 3 ? " i #{result.skipped.size - 3} innych" : "")
-        { alert: "#{message} Pominięto #{result.skipped.size} (#{names}) – mają towar, historię magazynową lub zamówienia; " \
+        { alert: "#{message} Pominięto #{result.skipped.size} (#{names}) - mają towar, historię magazynową lub zamówienia; " \
                  "zmień im status na „Zarchiwizowany”." }
       end
 
@@ -183,8 +177,15 @@ module Inventory
         product.variant? ? edit_inventory_variant_path(product, **query) : edit_inventory_product_path(product, **query)
       end
 
-      def quantity_error(message)
-        redirect_back_or_to edit_path(@product, tab: "stock"), inertia: { errors: { quantity: [ message ] } }
+      def parse_on_hand(value)
+        on_hand = Integer(value.to_s.strip, 10, exception: false)
+        on_hand if on_hand&.>=(0)
+      end
+
+      # Błędy pól stanu: { warehouse_id => komunikat } → errors["stock.<warehouse_id>"].
+      def stock_errors(messages)
+        errors = messages.to_h { |warehouse_id, message| [ "stock.#{warehouse_id}", [ message ] ] }
+        redirect_back_or_to edit_path(@product, tab: "stock"), inertia: { errors: }
       end
 
       # Zakładka karty, na którą wracamy po zapisie (?tab=prices itd.).
@@ -219,7 +220,7 @@ module Inventory
           },
           catalog: { id: product.catalog.id, name: product.catalog.name },
           catalogs: catalogs_json,
-          # Formularz pokazuje ceny tylko w grupach katalogu produktu (przy nowym produkcie – wybranego katalogu).
+          # Formularz pokazuje ceny tylko w grupach katalogu produktu (przy nowym produkcie - wybranego katalogu).
           priceGroups: price_groups_json,
           catalogPriceGroups: catalogs.includes(:catalog_price_groups).to_h { [ _1.id.to_s, _1.price_group_ids ] },
           statuses: STATUS_LABELS,

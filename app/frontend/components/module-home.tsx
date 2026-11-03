@@ -4,7 +4,7 @@ import { PageBar } from "@/components/page-bar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ModuleInfo } from "@/lib/modules"
 
-// Wspólny szkielet ekranu startowego modułu – do zastąpienia prawdziwymi widokami.
+// Wspólny szkielet ekranu startowego modułu - do zastąpienia prawdziwymi widokami.
 export function ModuleHome({ info, nextSteps }: { info: ModuleInfo; nextSteps: string[] }) {
   return (
     <>

@@ -27,5 +27,5 @@ void createInertiaApp({
   },
 }).catch((error) => {
   if (document.getElementById("app")) throw error
-  console.error("Brak elementu #app – ten entrypoint ładuj tylko na stronach Inertia.")
+  console.error("Brak elementu #app - ten entrypoint ładuj tylko na stronach Inertia.")
 })

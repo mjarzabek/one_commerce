@@ -3,11 +3,11 @@ import { BoxesIcon, FileTextIcon, HistoryIcon, TagsIcon, Trash2Icon } from "luci
 
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
 import { PricesPanel } from "@/components/inventory/prices-panel"
-import { SaveBar } from "@/components/inventory/save-bar"
 import { MovementsPanel, StockPanel } from "@/components/inventory/stock-panels"
 import { catalogCrumbs, type ProductStock } from "@/components/inventory/types"
 import { useVariantForm, VariantGeneralFields, type VariantFormProps } from "@/components/inventory/variant-form"
 import { PageBar } from "@/components/page-bar"
+import { SaveBar } from "@/components/save-bar"
 import { TabbedCard } from "@/components/tabbed-card"
 import { Button } from "@/components/ui/button"
 import { useTabParam } from "@/hooks/use-tab-param"
@@ -22,7 +22,7 @@ export default function InventoryVariantEdit({ stock, ...props }: Props) {
   const { variant, parent, catalog } = props
   const state = useVariantForm(props)
   const [tab, setTab] = useTabParam<Tab>(TABS, "general")
-  const label = `${parent.name} – ${variant.name}`
+  const label = `${parent.name} - ${variant.name}`
 
   return (
     <>
@@ -58,13 +58,14 @@ export default function InventoryVariantEdit({ stock, ...props }: Props) {
 
       {tab === "general" && <VariantGeneralFields state={state} {...props} />}
       {tab === "prices" && <PricesPanel priceGroups={props.priceGroups} value={state.form.data.prices} onChange={(prices) => state.form.setData("prices", prices)} errors={state.errors} />}
-      {tab === "stock" && <StockPanel productId={variant.id!} label={label} stock={stock} />}
+      {tab === "stock" && <StockPanel productId={variant.id!} stock={stock} />}
       {tab === "history" && <MovementsPanel stock={stock} />}
 
       </TabbedCard>
 
+      {/* Zakładka „Stan” ma własny pasek zapisu stanów. */}
       <SaveBar
-        visible={state.form.isDirty}
+        visible={state.form.isDirty && tab !== "stock"}
         processing={state.form.processing}
         onSave={() => state.save(tab)}
         onDiscard={() => {

@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe "Produkty – lista, produkty i warianty", type: :request do
+RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
   let(:user) { create(:user, modules: [ :live ]) }
   let(:account) { user.accounts.first }
   let(:catalog) { Inventory.default_catalog(account) }
@@ -18,7 +18,7 @@ RSpec.describe "Produkty – lista, produkty i warianty", type: :request do
   end
 
   describe "lista" do
-    it "pokazuje produkty proste i wariantowe z wariantami, ceną i stanem – łącznie albo w magazynie" do
+    it "pokazuje produkty proste i wariantowe z wariantami, ceną i stanem - łącznie albo w magazynie" do
       shop = add_warehouse("Punkt Y")
       create(:product, account:, name: "Kubek", sku: "KUBEK", price_cents: 4_900, stock: 2)
       lena = create(:main_product, account:, name: "Sukienka Lena", sku: "LENA")
@@ -63,7 +63,7 @@ RSpec.describe "Produkty – lista, produkty i warianty", type: :request do
         expect(names(sku: "kubek", ean: "5901")).to eq([])
       end
 
-      it "filtruje po cenie i stanie od–do" do
+      it "filtruje po cenie i stanie od-do" do
         expect(names(price_min: "50", price_max: "100")).to eq([ "Szal" ])
         expect(names(stock_min: "1", stock_max: "5")).to eq([ "Kubek" ])
         expect(names(stock_max: "0")).to eq([ "Szal" ])
@@ -188,14 +188,31 @@ RSpec.describe "Produkty – lista, produkty i warianty", type: :request do
       expect(inertia.props[:stock]["warehouses"].sole).to include("name" => "Magazyn główny", "on_hand" => 3)
     end
 
-    it "zmienia stan w wybranym magazynie i zapisuje autora" do
-      product = create(:product, account:)
+    it "edytuje stan w magazynach i zapisuje w historii, z ilu na ile i kto" do
+      product = create(:product, account:, stock: 2)
+      main = Inventory.warehouses(account).first
       shop = add_warehouse("Punkt Y")
 
-      post "/inventory/products/#{product.id}/adjustments", params: { mode: "receive", warehouse_id: shop.id, quantity: "3", note: "Dostawa" }
+      patch "/inventory/products/#{product.id}/stock", params: { stock: { main.id => "2", shop.id => "3" } }
 
       get "/inventory/products/#{product.id}/edit"
-      expect(inertia.props[:stock]["movements"].first).to include("quantity" => 3, "warehouse" => "Punkt Y", "user" => user.name)
+      expect(inertia.props[:stock]["warehouses"].map { _1["on_hand"] }).to eq([ 2, 3 ])
+      expect(inertia.props[:stock]["movements"].first).to include(
+        "reason" => "Zmiana ręczna", "before" => 0, "after" => 3, "quantity" => 3, "warehouse" => "Punkt Y", "user" => user.name
+      )
+      expect(inertia.props[:stock]["movements"].size).to eq(2)
+    end
+
+    it "nie zapisuje niepoprawnego stanu" do
+      product = create(:product, account:, stock: 2)
+      main = Inventory.warehouses(account).first
+
+      patch "/inventory/products/#{product.id}/stock", params: { stock: { main.id => "-1" } },
+        headers: { "HTTP_REFERER" => "/inventory/products/#{product.id}/edit" }
+
+      follow_redirect!
+      expect(inertia.props[:errors]["stock.#{main.id}"]).to eq([ "Podaj stan (0 lub więcej)" ])
+      expect(inertia.props[:stock]["warehouses"].sole["on_hand"]).to eq(2)
     end
   end
 

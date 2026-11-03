@@ -2,7 +2,7 @@ module Inventory
   # Wspólna baza ekranów sekcji „Produkty”: dostęp z panelem zamówień, domyślna konfiguracja konta, wybór katalogu
   # i bloki karty produktu (ceny, stany w magazynach, historia ruchów).
   class BaseController < InertiaController
-    REASON_LABELS = { "receipt" => "Przyjęcie", "adjustment" => "Korekta", "sale" => "Sprzedaż", "return" => "Zwrot" }.freeze
+    REASON_LABELS = { "receipt" => "Przyjęcie", "adjustment" => "Zmiana ręczna", "sale" => "Sprzedaż", "return" => "Zwrot" }.freeze
 
     requires_orders_panel
     before_action { Inventory.ensure_setup!(Current.account) }
@@ -20,7 +20,7 @@ module Inventory
         catalogs.map { { id: _1.id, name: _1.name } }
       end
 
-      # Grupy cenowe konta albo – z `catalog` – grupy, z których korzysta katalog.
+      # Grupy cenowe konta albo - z `catalog` - grupy, z których korzysta katalog.
       def price_groups(catalog = nil)
         Inventory.price_groups(Current.account, catalog:)
       end
@@ -33,7 +33,7 @@ module Inventory
         redirect_to to, inertia: { errors: inertia_errors(record) }
       end
 
-      # Ceny produktu do pól formularza: { "price_group_id" => "199,90" } – wszystkie grupy konta
+      # Ceny produktu do pól formularza: { "price_group_id" => "199,90" } - wszystkie grupy konta
       # (formularz pokazuje tylko grupy katalogu produktu).
       def price_inputs_json(product)
         price_groups.to_h { |group| [ group.id.to_s, Inventory.format_money_input(product.price_cents_in(group.id)) ] }
@@ -55,7 +55,8 @@ module Inventory
         {
           warehouses: warehouses.map do |warehouse|
             item = items[warehouse.id]
-            { id: warehouse.id, name: warehouse.name, on_hand: item&.on_hand || 0, reserved: item&.reserved || 0 }
+            { id: warehouse.id, name: warehouse.name, on_hand: item&.on_hand || 0, reserved: item&.reserved || 0,
+              strict_control: warehouse.strict_control }
           end,
           reservations: Reservation.where(product:).active.order(:id).map do |reservation|
             { id: reservation.id, quantity: reservation.quantity, warehouse: names[reservation.warehouse_id],

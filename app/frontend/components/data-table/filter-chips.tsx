@@ -10,7 +10,7 @@ const describe = (filter: FilterSchema, values: FilterValues) => {
     case "range":
     case "money_range": {
       const [min, max] = filter.params.map((param) => values[param])
-      return min && max ? `${min}–${max}${unit}` : min ? `od ${min}${unit}` : `do ${max}${unit}`
+      return min && max ? `${min}-${max}${unit}` : min ? `od ${min}${unit}` : `do ${max}${unit}`
     }
     case "select":
       return filter.options?.find((option) => option.value === values[filter.key])?.label ?? values[filter.key]

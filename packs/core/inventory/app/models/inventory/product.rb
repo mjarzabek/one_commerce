@@ -1,10 +1,10 @@
 module Inventory
   # Produkt w katalogu.
   #
-  # - Produkt prosty: bez rodzica i bez wariantów – ma SKU, EAN, ceny i stany.
+  # - Produkt prosty: bez rodzica i bez wariantów - ma SKU, EAN, ceny i stany.
   # - Produkt wariantowy: produkt główny (może mieć własne SKU i EAN) z wariantami (`variants`).
   #   Ceny i stany mają warianty; stan produktu głównego to suma wariantów.
-  # - Wariant: produkt z `parent` – ma własną nazwę wariantu (np. „M”), SKU, EAN, ceny i stany.
+  # - Wariant: produkt z `parent` - ma własną nazwę wariantu (np. „M”), SKU, EAN, ceny i stany.
   class Product < ApplicationRecord
     TAX_RATES = [ 23, 8, 5, 0 ].freeze
     STATUS_LABELS = { "active" => "Aktywny", "draft" => "Szkic", "archived" => "Zarchiwizowany" }.freeze
@@ -64,7 +64,7 @@ module Inventory
     end
 
     # Stan rodziny w podanych magazynach (`stock_value`) i najniższa cena rodziny w grupie (`min_price`),
-    # liczone raz na produkt – można po nich filtrować i sortować (`family_stock.value`, `family_price.min`).
+    # liczone raz na produkt - można po nich filtrować i sortować (`family_stock.value`, `family_price.min`).
     scope :with_family_metrics, ->(warehouse_ids:, price_group:) do
       family = unscoped.from("inventory_products family")
         .where("family.id = inventory_products.id OR family.parent_id = inventory_products.id").select("family.id")
@@ -87,7 +87,7 @@ module Inventory
     def main_product = parent || self
 
     def display_name
-      variant? ? "#{parent.name} – #{name}" : name
+      variant? ? "#{parent.name} - #{name}" : name
     end
 
     def effective_tax_rate
@@ -106,7 +106,7 @@ module Inventory
           price ||= prices.build(price_group_id: group_id, account:)
           price.amount_cents = cents
         else
-          @price_errors[group_id] = "Nieprawidłowa kwota – wpisz np. 199,99"
+          @price_errors[group_id] = "Nieprawidłowa kwota - wpisz np. 199,99"
         end
       end
     end
@@ -127,12 +127,12 @@ module Inventory
         errors.add(:parent, "należy do innego konta") if parent.account_id != account_id
       end
 
-      # Produkt prosty z towarem nie może dostać wariantów – stan musiałby „zniknąć” z produktu głównego.
+      # Produkt prosty z towarem nie może dostać wariantów - stan musiałby „zniknąć” z produktu głównego.
       def parent_without_stock
         return unless parent&.persisted? && parent.variants.where.not(id: nil).none?
         return unless StockItem.where(product_id: parent.id).where("on_hand > 0 OR reserved > 0").exists?
 
-        errors.add(:base, "Produkt „#{parent.name}” ma towar na stanie – wyzeruj jego stan, zanim dodasz warianty")
+        errors.add(:base, "Produkt „#{parent.name}” ma towar na stanie - wyzeruj jego stan, zanim dodasz warianty")
       end
 
       def catalog_from_account

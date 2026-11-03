@@ -23,11 +23,11 @@ module Customers
       customer
     end
   rescue ActiveRecord::RecordNotUnique
-    # Równoległe utworzenie tej samej tożsamości – bierzemy rekord, który wygrał.
+    # Równoległe utworzenie tej samej tożsamości - bierzemy rekord, który wygrał.
     Identity.find_by!(account:, channel: channel.to_s, external_id: external_id.to_s).customer
   end
 
-  # Klient bez tożsamości w kanale (zamówienie ręczne) – dopasowanie po e-mailu, jeśli jest.
+  # Klient bez tożsamości w kanale (zamówienie ręczne) - dopasowanie po e-mailu, jeśli jest.
   def find_or_create!(account, attrs)
     attrs = attrs.to_h.symbolize_keys.slice(:name, :email, :phone, :default_address)
     email = attrs[:email].to_s.strip.downcase.presence

@@ -19,7 +19,7 @@ RSpec.describe Orders do
 
       expect(order).to have_attributes(status: "new", number: "#{Time.current.year}/000001", customer_name: "Anna Kowalska",
         subtotal_cents: 30_000, shipping_cents: 1_500, total_cents: 31_500, shipping_method: "InPost Paczkomat")
-      expect(order.items.sole).to have_attributes(sku: "SUK-M", name: "Sukienka – M", unit_price_cents: 15_000, tax_rate: 23)
+      expect(order.items.sole).to have_attributes(sku: "SUK-M", name: "Sukienka - M", unit_price_cents: 15_000, tax_rate: 23)
       expect(stock).to have_attributes(on_hand: 5, reserved: 2)
       expect(order.status_changes.sole).to have_attributes(from_status: nil, to_status: "new")
     end

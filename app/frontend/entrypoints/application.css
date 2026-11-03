@@ -146,7 +146,7 @@
   --scrollbar-thumb-hover: oklch(1 0 0 / 0.32);
 }
 
-/* Chrome, Edge, Safari. Standardowych `scrollbar-*` tu nie ustawiamy – w Chrome wyłączyłyby te style. */
+/* Chrome, Edge, Safari. Standardowych `scrollbar-*` tu nie ustawiamy - w Chrome wyłączyłyby te style. */
 ::-webkit-scrollbar {
   width: 12px;
   height: 12px;

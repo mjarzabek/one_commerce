@@ -12,7 +12,7 @@ class CreateInventory < ActiveRecord::Migration[8.1]
     end
     add_index :inventory_catalogs, %i[account_id name], unique: true
 
-    # Magazyny konta – fizyczne miejsca składowania. Kolejność (position) to priorytet wydawania towaru.
+    # Magazyny konta - fizyczne miejsca składowania. Kolejność (position) to priorytet wydawania towaru.
     create_table :inventory_warehouses do |t|
       t.references :account, null: false, foreign_key: true
       t.string :name, null: false

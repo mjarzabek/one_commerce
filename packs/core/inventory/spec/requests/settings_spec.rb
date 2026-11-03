@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe "Produkty – ustawienia: katalogi, magazyny, ceny i ogólne", type: :request do
+RSpec.describe "Produkty - ustawienia: katalogi, magazyny, ceny i ogólne", type: :request do
   let(:user) { create(:user, modules: [ :live ]) }
   let(:account) { user.accounts.first }
   let(:catalog) { Inventory.default_catalog(account) }
@@ -63,11 +63,25 @@ RSpec.describe "Produkty – ustawienia: katalogi, magazyny, ceny i ogólne", ty
       product = create(:product, account:, stock: 5)
       Inventory.reserve!(account, product.id, 4, holder: create(:customer, account:), warehouse_id: main.id)
 
-      post "/inventory/products/#{product.id}/adjustments", params: { mode: "set", warehouse_id: main.id, quantity: "1" },
+      patch "/inventory/products/#{product.id}/stock", params: { stock: { main.id => "1" } },
         headers: { "HTTP_REFERER" => "/inventory/products/#{product.id}/edit" }
 
       follow_redirect!
-      expect(inertia.props[:errors]["quantity"].first).to include("zarezerwowanych")
+      expect(inertia.props[:errors]["stock.#{main.id}"].first).to include("zarezerwowanych")
+    end
+
+    it "włącza ścisłą kontrolę magazynu, która blokuje ręczną zmianę stanu" do
+      product = create(:product, account:, stock: 5)
+
+      patch "/inventory/settings/warehouses/#{main.id}", params: { strict_control: true }
+      expect(main.reload).to be_strict_control
+
+      patch "/inventory/products/#{product.id}/stock", params: { stock: { main.id => "9" } },
+        headers: { "HTTP_REFERER" => "/inventory/products/#{product.id}/edit" }
+
+      follow_redirect!
+      expect(inertia.props[:errors]["stock.#{main.id}"].first).to include("ścisłą kontrolę")
+      expect(inertia.props[:stock]["warehouses"].sole).to include("on_hand" => 5, "strict_control" => true)
     end
 
     it "zwalnia i realizuje rezerwację z karty produktu" do

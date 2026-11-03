@@ -63,7 +63,7 @@ function CatalogActions({
         open={dialog === "delete"}
         onOpenChange={close}
         title={`Usunąć katalog „${catalog.name}”?`}
-        description="Magazyny i grupy cenowe zostają – usuwany jest tylko katalog. Katalog z produktami nie może zostać usunięty."
+        description="Magazyny i grupy cenowe zostają - usuwany jest tylko katalog. Katalog z produktami nie może zostać usunięty."
         url={`/inventory/settings/catalogs/${catalog.id}`}
       />
     </>
@@ -141,7 +141,7 @@ export default function InventorySettingsCatalogs({ catalogs, warehouses, priceG
           </NameDialog>
         }
       />
-      {/* Zakładki w karcie razem z tabelą – jak na liście produktów. */}
+      {/* Zakładki w karcie razem z tabelą - jak na liście produktów. */}
       <Card className="gap-0 py-0">
         <InventorySettingsTabs className="mt-0 px-2" />
         <Table>

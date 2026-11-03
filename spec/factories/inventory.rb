@@ -1,5 +1,5 @@
 FactoryBot.define do
-  # Produkt prosty: create(:product, price_cents: 10_000, stock: 5) – cena w grupie domyślnej, towar w pierwszym magazynie.
+  # Produkt prosty: create(:product, price_cents: 10_000, stock: 5) - cena w grupie domyślnej, towar w pierwszym magazynie.
   # Wariant: create(:variant, parent: produkt_główny).
   factory :product, class: "Inventory::Product" do
     account

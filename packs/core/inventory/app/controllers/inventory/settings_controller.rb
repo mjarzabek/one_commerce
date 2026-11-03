@@ -19,8 +19,8 @@ module Inventory
 
       notice =
         if warehouse then "Zamówienia z tego źródła będą realizowane z magazynu „#{warehouse.name}”."
-        elsif enabled then "Rezerwacje włączone – nowe zamówienia od razu blokują towar."
-        else "Rezerwacje wyłączone – towar zejdzie ze stanu przy wysyłce."
+        elsif enabled then "Rezerwacje włączone - nowe zamówienia od razu blokują towar."
+        else "Rezerwacje wyłączone - towar zejdzie ze stanu przy wysyłce."
         end
       redirect_back_or_to inventory_settings_general_path, notice:
     end

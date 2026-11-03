@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { MODULE_ORDER, MODULES, ORDERS_PANEL, type ModuleInfo } from "@/lib/modules"
 import { cn } from "@/lib/utils"
 
-// DANE PRZYKŁADOWE – tylko do oceny wyglądu, do zastąpienia danymi z kontrolera.
+// DANE PRZYKŁADOWE - tylko do oceny wyglądu, do zastąpienia danymi z kontrolera.
 const SAMPLE_STATS = [
   { label: "Zamówienia", value: "128", trend: [3, 5, 4, 6, 5, 8, 7, 9, 8, 11, 10, 12] },
   { label: "Sprzedaż", value: "24 870 zł", trend: [4, 4, 6, 5, 7, 6, 9, 8, 8, 10, 12, 11] },
