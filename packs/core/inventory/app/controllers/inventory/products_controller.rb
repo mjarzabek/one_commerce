@@ -3,7 +3,7 @@ module Inventory
   class ProductsController < BaseController
     STATUS_LABELS = Product::STATUS_LABELS
 
-    before_action :set_product, only: %i[edit update destroy stock price available]
+    before_action :set_product, only: %i[edit update destroy price available duplicate]
 
     # Lista produktów katalogu: wyszukiwanie, filtry ze schematu ProductSearch::FILTERS, sortowanie, strony.
     def index
@@ -24,6 +24,7 @@ module Inventory
           own_prices = variants.any? ? variants.map { _1.price_cents_in(group.id) } : [ product.price_cents_in(group.id) ]
           {
             id: product.id, name: product.name, sku: product.sku, ean: product.ean, status: product.status,
+            image: product.images.first&.then { rails_representation_path(_1.file.variant(:thumb)) },
             price: price_label.(own_prices), stock: product.stock_value.to_i, sellable: variants.none?,
             reserved: variants.any? ? variants.sum { reserved.fetch(_1.id, 0) } : reserved.fetch(product.id, 0),
             priceInput: variants.any? ? nil : price_input.(product),
@@ -36,7 +37,7 @@ module Inventory
         end,
         pagination: { page: search.pagy.page, pages: search.pagy.pages, per: search.pagy.limit, total: search.pagy.count },
         filterSchema: search.schema.map do |filter|
-          filter[:key] == "price" ? filter.merge(unit: group.currency == "PLN" ? "zł" : group.currency) : filter
+          filter[:key] == "price" ? filter.merge(unit: group.currency) : filter
         end,
         filters: search.param_values,
         view: { q: search.query, catalog_id: current_catalog.id, warehouse_id: warehouse&.id, price_group_id: group.id,
@@ -51,7 +52,7 @@ module Inventory
 
     # POST /inventory/products/bulk - akcja na zaznaczonych produktach (`ids[]`) albo na wszystkich
     # pasujących do wyszukiwania i filtrów (`all=true` + te same parametry co lista).
-    #   operation=delete | operation=status&new_status=archived
+    #   operation=delete | operation=status&new_status=draft
     # (`new_status`, nie `status` - `status` to filtr listy.)
     def bulk
       all = ActiveModel::Type::Boolean.new.cast(params[:all])
@@ -60,8 +61,8 @@ module Inventory
 
       case params[:operation]
       when "delete"
-        result = Inventory.delete_products!(Current.account, ids)
-        redirect_back_or_to inventory_root_path, **delete_flash(result)
+        count = Inventory.delete_products!(Current.account, ids)
+        redirect_back_or_to inventory_root_path, notice: "Usunięto #{count} #{products_word(count)}."
       when "status"
         return redirect_back_or_to(inventory_root_path, alert: "Nieznany status.") unless STATUS_LABELS.key?(params[:new_status])
 
@@ -73,31 +74,37 @@ module Inventory
     end
 
     def destroy
-      result = Inventory.delete_products!(Current.account, [ @product.main_product.id ])
-      if result.deleted.positive?
-        redirect_to inventory_root_path(catalog_id: @product.catalog_id), notice: "Usunięto produkt „#{@product.name}”."
-      else
-        redirect_to edit_inventory_product_path(@product),
-          alert: "Nie można usunąć produktu, który ma towar, historię magazynową lub zamówienia - zmień status na „Zarchiwizowany”."
-      end
+      Inventory.delete_products!(Current.account, [ @product.main_product.id ])
+      redirect_to inventory_root_path(catalog_id: @product.catalog_id), notice: "Usunięto produkt „#{@product.name}”."
+    end
+
+    # POST /inventory/products/:id/duplicate - kopia jako szkic (bez stanu i historii), otwiera się jej karta.
+    def duplicate
+      copy = Inventory.duplicate_product!(Current.account, @product.main_product.id)
+      redirect_to edit_inventory_product_path(copy), notice: "Utworzono kopię produktu. Sprawdź SKU i EAN, a potem uzupełnij stan."
     end
 
     def new
-      product = Product.new(account: Current.account, catalog: current_catalog, tax_rate: 23)
+      product = Product.new(account: Current.account, catalog: current_catalog, tax_rate: 23, status: :draft)
       render inertia: "core/inventory/products/new", props: form_props(product)
     end
 
     def create
       catalog = catalogs.find(params.dig(:product, :catalog_id) || current_catalog.id)
       product = Product.new(account: Current.account, catalog:)
-      # Nowy produkt prosty: od razu zakładka „Stan”, żeby uzupełnić stan.
-      save(product, notice: "Dodano produkt.", redirect_tab: "stock")
+      # Nowy produkt: od razu zakładka „Sprzedaż”, żeby uzupełnić stan.
+      save(product, notice: "Dodano produkt.", redirect_tab: "sales")
     end
 
-    # Karta produktu z zakładkami: Ogólne, Ceny, Stan, Historia, Warianty, Marketplace.
+    # Karta produktu: zakładki Karta produktu, Sprzedaż (ceny, VAT, stan - produkt prosty), Warianty, Historia,
+    # Rezerwacje, Kanały. Produkt z wariantami pokazuje tylko wartości wyliczone z wariantów (`summary`).
     def edit
       group = Inventory.default_price_group(Current.account, catalog: @product.catalog)
-      props = form_props(@product)
+      props = form_props(@product).merge(
+        images: images_json(@product),
+        activity: activity_json(@product),
+        reservationsEnabled: reservations_enabled?
+      )
       if @product.with_variants?
         warehouses = Inventory.warehouses(Current.account, catalog: @product.catalog).to_a
         levels = Inventory.stock_levels(Current.account, @product.variants.map(&:id))
@@ -122,30 +129,9 @@ module Inventory
       render inertia: "core/inventory/products/edit", props:
     end
 
+    # PATCH /inventory/products/:id  product[…] (dane, ceny) i stock[<warehouse_id>]=<na stanie> - zapisywane razem.
     def update
       save(@product, notice: "Zapisano zmiany.")
-    end
-
-    # PATCH /inventory/products/:id/stock  stock[<warehouse_id>]=<stan na stanie>
-    # Zwykła edycja stanu w magazynach bez ścisłej kontroli; każda zmiana trafia do historii (z ilu na ile).
-    def stock
-      warehouse_ids = Inventory.warehouses(Current.account, catalog: @product.catalog).ids.map(&:to_s)
-      levels = params.expect(stock: warehouse_ids).to_h
-      invalid = levels.keys.reject { parse_on_hand(levels[_1]) }
-      return stock_errors(invalid.to_h { [ _1, "Podaj stan (0 lub więcej)" ] }) if invalid.any?
-
-      warehouse_id = nil
-      StockItem.transaction do
-        levels.each do |id, value|
-          warehouse_id = id
-          Inventory.set_on_hand!(Current.account, @product.id, parse_on_hand(value), warehouse_id: id.to_i, user: Current.user)
-        end
-      end
-      redirect_back_or_to edit_path(@product, tab: "stock"), notice: "Zapisano stan."
-    rescue ActiveRecord::RecordInvalid => e
-      stock_errors(warehouse_id => e.record.errors.messages.values.flatten.to_sentence.upcase_first)
-    rescue Inventory::StrictControl, Inventory::NotSellable => e
-      stock_errors(warehouse_id => e.message)
     end
 
     # PATCH /inventory/products/:id/price  price_group_id=…&price=199,90 - cena w jednej grupie (edycja z listy).
@@ -187,14 +173,6 @@ module Inventory
         [ search, warehouse, warehouses, groups ]
       end
 
-      def delete_flash(result)
-        message = result.deleted.positive? ? "Usunięto #{result.deleted} #{products_word(result.deleted)}." : "Nie usunięto żadnego produktu."
-        return { notice: message } if result.skipped.empty?
-
-        skipped = "Pominięto #{result.skipped.size} - mają towar, historię magazynową lub zamówienia; zarchiwizuj je."
-        result.deleted.positive? ? { warning: "#{message} #{skipped}" } : { alert: "#{message} #{skipped}" }
-      end
-
       def products_word(count)
         return "produkt" if count == 1
         return "produkty" if (2..4).cover?(count % 10) && !(12..14).cover?(count % 100)
@@ -206,36 +184,31 @@ module Inventory
         @product = Product.where(account: Current.account).includes(:prices, :parent, variants: :prices).find(params[:id])
       end
 
-      def edit_path(product, **query)
-        product.variant? ? edit_inventory_variant_path(product, **query) : edit_inventory_product_path(product, **query)
-      end
-
-      def parse_on_hand(value)
-        on_hand = Integer(value.to_s.strip, 10, exception: false)
-        on_hand if on_hand&.>=(0)
-      end
-
-      # Błędy pól stanu: { warehouse_id => komunikat } → errors["stock.<warehouse_id>"].
-      def stock_errors(messages)
-        errors = messages.to_h { |warehouse_id, message| [ "stock.#{warehouse_id}", [ message ] ] }
-        redirect_back_or_to edit_path(@product, tab: "stock"), inertia: { errors: }
-      end
-
-      # Zakładka karty, na którą wracamy po zapisie (?tab=prices itd.).
+      # Zakładka karty, na którą wracamy po zapisie (?tab=sales itd.).
       def tab = params[:tab].presence
 
+      # Produkt i stan (`stock`) w jednej transakcji - błąd w którymkolwiek nie zapisuje niczego.
       def save(product, notice:, redirect_tab: tab)
         product.assign_attributes(product_params(product))
-        if product.save
+        stock_errors = {}
+        Product.transaction do
+          raise ActiveRecord::Rollback unless product.save
+
+          stock_errors = apply_stock(product, params[:stock])
+          raise ActiveRecord::Rollback if stock_errors.any?
+        end
+
+        if product.errors.none? && stock_errors.none?
           redirect_to edit_inventory_product_path(product, tab: redirect_tab), notice:
         else
           target = product.persisted? ? edit_inventory_product_path(product, tab:) : new_inventory_product_path(catalog_id: product.catalog_id, tab:)
-          redirect_with_errors(product, to: target)
+          redirect_to target, inertia: { errors: inertia_errors(product).merge(stock_errors) }
         end
       end
 
       def product_params(product)
-        permitted = params.expect(product: [ :name, :sku, :ean, :description, :status, :tax_rate, price_inputs: {} ])
+        permitted = params.expect(product: [ :name, :sku, :ean, :description, :description_extra_1, :description_extra_2,
+          :description_extra_3, :status, :tax_rate, *Product::DIMENSIONS.keys, price_inputs: {}, parameters: [ [ :name, :value ] ] ])
         if product.persisted? && product.with_variants?
           permitted.delete(:price_inputs)
         elsif permitted.key?(:price_inputs)
@@ -248,7 +221,10 @@ module Inventory
         {
           product: {
             id: product.id, catalog_id: product.catalog_id, name: product.name.to_s, sku: product.sku.to_s, ean: product.ean.to_s,
-            description: product.description.to_s, status: product.status, tax_rate: product.tax_rate.to_i.to_s,
+            description: product.description.to_s, description_extra_1: product.description_extra_1.to_s,
+            description_extra_2: product.description_extra_2.to_s, description_extra_3: product.description_extra_3.to_s,
+            parameters: product.parameters, status: product.status, tax_rate: product.tax_rate.to_i.to_s,
+            **Product::DIMENSIONS.keys.to_h { [ _1, product.public_send(_1).to_s ] },
             prices: price_inputs_json(product), hasVariants: product.persisted? && product.with_variants?
           },
           catalog: { id: product.catalog.id, name: product.catalog.name },
@@ -259,6 +235,12 @@ module Inventory
           statuses: STATUS_LABELS,
           taxRates: Product::TAX_RATES.map(&:to_s)
         }
+      end
+
+      def images_json(product)
+        product.images.includes(file_attachment: :blob).map do |image|
+          { id: image.id, url: rails_blob_path(image.file, disposition: "inline"), name: image.file.filename.to_s }
+        end
       end
   end
 end

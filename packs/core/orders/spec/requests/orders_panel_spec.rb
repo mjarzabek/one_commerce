@@ -14,6 +14,6 @@ RSpec.describe "Panel zamówień", type: :request do
 
     expect_inertia.to render_component("core/orders/index")
     order = inertia.props[:orders].sole
-    expect(order).to include("source" => "Ręczne", "customer" => "Jan Nowak", "status" => "Nowe", "total" => "1 234,50 zł")
+    expect(order).to include("source" => "Ręczne", "customer" => "Jan Nowak", "status" => "Nowe", "total" => "1 234,50 PLN")
   end
 end

@@ -30,8 +30,8 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
 
       expect_inertia.to render_component("core/inventory/products/index")
       kubek, dress = inertia.props[:products]
-      expect(kubek).to include("name" => "Kubek", "sku" => "KUBEK", "price" => "49,00 zł", "stock" => 2, "variants" => [])
-      expect(dress).to include("name" => "Sukienka Lena", "sku" => "LENA", "price" => "199,00 zł", "stock" => 4)
+      expect(kubek).to include("name" => "Kubek", "sku" => "KUBEK", "price" => "49,00 PLN", "stock" => 2, "variants" => [])
+      expect(dress).to include("name" => "Sukienka Lena", "sku" => "LENA", "price" => "199,00 PLN", "stock" => 4)
       expect(dress["variants"].sole).to include("name" => "S", "sku" => "LENA-S", "stock" => 4)
       expect(inertia.props[:warehouses].map { _1["name"] }).to eq([ "Magazyn główny", "Punkt Y" ])
 
@@ -39,6 +39,18 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
 
       kubek, dress = inertia.props[:products]
       expect([ kubek["stock"], dress["stock"], dress["variants"].sole["stock"] ]).to eq([ 0, 1, 1 ])
+    end
+
+    it "pokazuje miniaturę pierwszego zdjęcia albo nic, gdy produkt nie ma zdjęć" do
+      mug = create(:product, account:, name: "Kubek")
+      create(:product, account:, name: "Szal")
+      mug.images.create!(file: fixture_file_upload("product.png", "image/png"))
+
+      get "/inventory"
+
+      kubek, szal = inertia.props[:products]
+      expect(kubek["image"]).to start_with("/rails/active_storage/representations/")
+      expect(szal["image"]).to be_nil
     end
 
     describe "wyszukiwanie i filtry" do
@@ -90,7 +102,7 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
 
         expect(inertia.props[:priceGroups].map { _1["name"] }).to eq(%w[Detal Allegro])
         expect(inertia.props[:view]["price_group_id"]).to eq(allegro.id)
-        expect(inertia.props[:products].first).to include("name" => "Kubek", "price" => "999,00 zł")
+        expect(inertia.props[:products].first).to include("name" => "Kubek", "price" => "999,00 PLN")
       end
 
       it "sortuje po cenie i stanie" do
@@ -130,17 +142,25 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
       let!(:foreign) { create(:product, name: "Obcy") }
 
       it "zmienia status zaznaczonych produktów, ale nie produktów innego konta" do
-        post "/inventory/products/bulk", params: { operation: "status", new_status: "archived", ids: [ mug.id, foreign.id ] }
+        post "/inventory/products/bulk", params: { operation: "status", new_status: "draft", ids: [ mug.id, foreign.id ] }
 
-        expect([ mug.reload.status, scarf.reload.status, foreign.reload.status ]).to eq(%w[archived active active])
+        expect([ mug.reload.status, scarf.reload.status, foreign.reload.status ]).to eq(%w[draft active active])
         expect(flash[:notice]).to include("1 produkt")
       end
 
-      it "usuwa zaznaczone i pomija produkty z towarem" do
-        post "/inventory/products/bulk", params: { operation: "delete", ids: [ mug.id, stocked.id ] }
+      it "odrzuca nieznany status" do
+        post "/inventory/products/bulk", params: { operation: "status", new_status: "archived", ids: [ mug.id ] }
 
-        expect(Inventory.products(account).map(&:name)).to contain_exactly("Szal", "Na stanie")
-        expect(flash[:warning]).to include("Usunięto 1 produkt", "Pominięto 1")
+        expect(flash[:alert]).to eq("Nieznany status.")
+        expect(mug.reload.status).to eq("active")
+      end
+
+      it "usuwa zaznaczone produkty, także z towarem, ale nie produkty innego konta" do
+        post "/inventory/products/bulk", params: { operation: "delete", ids: [ mug.id, stocked.id, foreign.id ] }
+
+        expect(Inventory.products(account).map(&:name)).to contain_exactly("Szal")
+        expect(Inventory.find_products(foreign.account, ids: [ foreign.id ])).to be_present
+        expect(flash[:notice]).to eq("Usunięto 2 produkty.")
       end
 
       it "działa na wszystkich produktach pasujących do filtrów (wszystkie strony)" do
@@ -174,8 +194,138 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
         tax_rate: "23", price_inputs: { retail.id => "49,90" } } }, as: :json
 
       product = Inventory.products(account).sole
-      expect(response).to redirect_to("/inventory/products/#{product.id}/edit?tab=stock")
+      expect(response).to redirect_to("/inventory/products/#{product.id}/edit?tab=sales")
       expect([ product.sku, product.ean, product.price_cents_in(retail.id) ]).to eq([ "KUBEK", "590", 4_990 ])
+    end
+
+    it "zapisuje opisy dodatkowe, parametry i wymiary (cm, kg)" do
+      product = create(:product, account:)
+
+      patch "/inventory/products/#{product.id}", params: { product: {
+        description: "Opis", description_extra_1: "Skład", description_extra_3: "Pielęgnacja",
+        parameters: [ { name: " Materiał ", value: "bawełna" }, { name: "", value: "" } ],
+        length_cm: "30", width_cm: "20,5", height_cm: "", weight_kg: "0,35"
+      } }, as: :json
+
+      product.reload
+      expect([ product.description_extra_1, product.description_extra_2, product.description_extra_3 ]).to eq([ "Skład", nil, "Pielęgnacja" ])
+      expect(product.parameters).to eq([ { "name" => "Materiał", "value" => "bawełna" } ])
+      expect([ product.length_mm, product.width_mm, product.height_mm, product.weight_grams ]).to eq([ 300, 205, nil, 350 ])
+
+      get "/inventory/products/#{product.id}/edit"
+      expect(inertia.props[:product]).to include("width_cm" => "20,5", "weight_kg" => "0,35", "height_cm" => "")
+    end
+
+    it "zwraca błędy wymiarów i niepełnych parametrów" do
+      product = create(:product, account:)
+
+      patch "/inventory/products/#{product.id}", params: { product: { weight_kg: "abc", parameters: [ { name: "Kolor", value: "" } ] } }, as: :json
+
+      follow_redirect!
+      expect(inertia.props[:errors]).to include("weight_kg" => [ "Podaj liczbę, np. 12,5" ], "parameters.0.value" => [ "Podaj wartość parametru" ])
+    end
+
+    it "zapisuje historię cen z autorem i pokazuje ją na karcie" do
+      product = create(:product, account:, price_cents: 10_000)
+
+      patch "/inventory/products/#{product.id}", params: { product: { price_inputs: { retail.id => "89,90" } } }, as: :json
+      patch "/inventory/products/#{product.id}", params: { product: { price_inputs: { retail.id => "" } } }, as: :json
+
+      get "/inventory/products/#{product.id}/edit"
+      removed, lowered, added = inertia.props[:activity]["priceChanges"]
+      expect(removed).to include("before" => "89,90 PLN", "after" => "0,00 PLN", "direction" => "down", "user" => user.name, "priceGroup" => "Detal")
+      expect(lowered).to include("before" => "100,00 PLN", "after" => "89,90 PLN", "direction" => "down")
+      expect(added).to include("before" => nil, "after" => "100,00 PLN", "direction" => "set", "user" => nil)
+    end
+
+    it "zapisuje dane, ceny i stan razem, a przy błędnym stanie nie zapisuje niczego" do
+      product = create(:product, account:, name: "Kubek", stock: 2)
+      main = Inventory.warehouses(account).first
+
+      patch "/inventory/products/#{product.id}?tab=sales", params: { product: { name: "Kubek 2" }, stock: { main.id => "-1" } }, as: :json
+
+      expect(response).to redirect_to("/inventory/products/#{product.id}/edit?tab=sales")
+      follow_redirect!
+      expect(inertia.props[:errors]["stock.#{main.id}"]).to eq([ "Podaj stan (0 lub więcej)" ])
+      expect(product.reload.name).to eq("Kubek")
+
+      patch "/inventory/products/#{product.id}", params: { product: { name: "Kubek 2" }, stock: { main.id => "7" } }, as: :json
+
+      expect(product.reload.name).to eq("Kubek 2")
+      expect(Inventory.available(account, [ product.id ])).to eq(product.id => 7)
+    end
+
+    it "usuwa produkt z towarem i historią" do
+      product = create(:product, account:, name: "Stary kubek", stock: 3)
+
+      delete "/inventory/products/#{product.id}"
+
+      expect(response).to redirect_to("/inventory?catalog_id=#{catalog.id}")
+      expect(Inventory.products(account)).to be_empty
+      expect(Inventory.stock_items(account)).to be_empty
+    end
+
+    it "duplikuje produkt jako szkic z cenami, zdjęciami i wariantami - bez stanu, z nowym SKU" do
+      main = create(:main_product, account:, name: "Sukienka", sku: "LENA", ean: "590", description: "Opis",
+        parameters: [ { name: "Materiał", value: "len" } ], weight_kg: "0,4")
+      create(:variant, parent: main, name: "M", sku: "LENA-M", price_cents: 12_900, stock: 2)
+      main.images.create!(file: fixture_file_upload("product.png", "image/png"))
+
+      post "/inventory/products/#{main.id}/duplicate"
+      post "/inventory/products/#{main.id}/duplicate"
+
+      copy, second = Inventory::Product.main.where(account:).where.not(id: main.id).order(:id).to_a
+      expect(response).to redirect_to("/inventory/products/#{second.id}/edit")
+      expect(copy).to have_attributes(name: "Sukienka (kopia)", sku: "LENA-KOPIA", ean: nil, status: "draft",
+        description: "Opis", parameters: [ { "name" => "Materiał", "value" => "len" } ], weight_grams: 400)
+      expect(second.sku).to eq("LENA-KOPIA-2")
+      expect(copy.images.sole.file.download).to eq(main.images.sole.file.download)
+      variant = copy.variants.sole
+      expect([ variant.name, variant.sku, variant.price_cents_in(retail.id) ]).to eq([ "M", "LENA-M-KOPIA", 12_900 ])
+      expect(Inventory.available(account, [ variant.id ])).to eq(variant.id => 0)
+    end
+
+    it "pokazuje w formularzu tylko statusy Szkic i Aktywny" do
+      get "/inventory/products/#{create(:product, account:).id}/edit"
+
+      expect(inertia.props[:statuses]).to eq("active" => "Aktywny", "draft" => "Szkic")
+    end
+
+    describe "zdjęcia" do
+      let(:product) { create(:product, account:) }
+      let(:png) { fixture_file_upload("product.png", "image/png") }
+
+      it "dodaje zdjęcia, zmienia kolejność (pierwsze = główne) i usuwa" do
+        post "/inventory/products/#{product.id}/images", params: { images: [ png, fixture_file_upload("product.png", "image/png") ] }
+
+        first, second = product.images.reload
+        expect(flash[:notice]).to eq("Dodano zdjęcia.")
+
+        patch "/inventory/images/#{second.id}", params: { position: 0 }
+        expect(product.images.reload).to eq([ second, first ])
+
+        get "/inventory/products/#{product.id}/edit"
+        expect(inertia.props[:images].map { _1["id"] }).to eq([ second.id, first.id ])
+        expect(inertia.props[:images].first["url"]).to include("/rails/active_storage/blobs/")
+
+        delete "/inventory/images/#{second.id}"
+        expect(product.images.reload).to eq([ first ])
+      end
+
+      it "odrzuca pliki, które nie są zdjęciami" do
+        post "/inventory/products/#{product.id}/images", params: { images: [ fixture_file_upload("notes.txt", "text/plain") ] }
+
+        expect(flash[:alert]).to include("musi być zdjęciem")
+        expect(product.images).to be_empty
+      end
+
+      it "nie pozwala zmieniać zdjęć produktu innego konta" do
+        foreign = create(:product)
+
+        post "/inventory/products/#{foreign.id}/images", params: { images: [ png ] }
+
+        expect(response).to have_http_status(:not_found)
+      end
     end
 
     it "zwraca błędy pól" do
@@ -199,14 +349,15 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
       main = Inventory.warehouses(account).first
       shop = add_warehouse("Punkt Y")
 
-      patch "/inventory/products/#{product.id}/stock", params: { stock: { main.id => "2", shop.id => "3" } }
+      patch "/inventory/products/#{product.id}", params: { product: { name: product.name }, stock: { main.id => "2", shop.id => "3" } }, as: :json
 
       get "/inventory/products/#{product.id}/edit"
       expect(inertia.props[:stock]["warehouses"].map { _1["on_hand"] }).to eq([ 2, 3 ])
-      expect(inertia.props[:stock]["movements"].first).to include(
-        "reason" => "Zmiana ręczna", "before" => 0, "after" => 3, "quantity" => 3, "warehouse" => "Punkt Y", "user" => user.name
+      expect(inertia.props[:activity]["movements"].first).to include(
+        "reason" => "Zmiana ręczna", "before" => 0, "after" => 3, "quantity" => 3, "warehouse" => "Punkt Y", "user" => user.name,
+        "product" => nil
       )
-      expect(inertia.props[:stock]["movements"].size).to eq(2)
+      expect(inertia.props[:activity]["movements"].size).to eq(2)
     end
 
     it "pokazuje stan z rezerwacjami i dane do edycji ceny tylko dla produktów sprzedawalnych" do
@@ -280,15 +431,15 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
       expect(Inventory.available(account, [ product.id ])).to eq(product.id => 2)
     end
 
-    it "nie zapisuje niepoprawnego stanu" do
+    it "nie zmienia stanu w magazynie ze ścisłą kontrolą" do
       product = create(:product, account:, stock: 2)
       main = Inventory.warehouses(account).first
+      main.update!(strict_control: true)
 
-      patch "/inventory/products/#{product.id}/stock", params: { stock: { main.id => "-1" } },
-        headers: { "HTTP_REFERER" => "/inventory/products/#{product.id}/edit" }
+      patch "/inventory/products/#{product.id}", params: { product: { name: product.name }, stock: { main.id => "5" } }, as: :json
 
       follow_redirect!
-      expect(inertia.props[:errors]["stock.#{main.id}"]).to eq([ "Podaj stan (0 lub więcej)" ])
+      expect(inertia.props[:errors]["stock.#{main.id}"].sole).to include("ścisłą kontrolę")
       expect(inertia.props[:stock]["warehouses"].sole["on_hand"]).to eq(2)
     end
   end
@@ -301,7 +452,7 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
         price_inputs: { retail.id => "199,00" } } }, as: :json
 
       variant = main.variants.sole
-      expect(response).to redirect_to("/inventory/variants/#{variant.id}/edit?tab=stock")
+      expect(response).to redirect_to("/inventory/variants/#{variant.id}/edit")
       expect([ variant.sku, variant.ean, variant.price_cents_in(retail.id) ]).to eq([ "LENA-M", "222", 19_900 ])
     end
 
@@ -314,15 +465,40 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
       expect(inertia.props[:product]["hasVariants"]).to be(true)
       expect(inertia.props[:variants].sole).to include("name" => "M", "sku" => "LENA-M", "available" => 2)
       expect(inertia.props[:variants].sole["levels"]).to eq(warehouse.id.to_s => { "on_hand" => 2, "reserved" => 0 })
-      expect(inertia.props[:summary]).to include("available" => 2, "price" => "100,00 zł")
+      expect(inertia.props[:summary]).to include("available" => 2, "price" => "100,00 PLN")
       expect(inertia.props).not_to have_key(:stock)
       expect(variant).to be_persisted
     end
 
     it "wraca na zakładkę, z której zapisano" do
-      patch "/inventory/products/#{main.id}?tab=variants", params: { product: { name: "Sukienka Lena 2" } }, as: :json
+      patch "/inventory/products/#{main.id}?tab=sales", params: { product: { name: "Sukienka Lena 2" } }, as: :json
 
-      expect(response).to redirect_to("/inventory/products/#{main.id}/edit?tab=variants")
+      expect(response).to redirect_to("/inventory/products/#{main.id}/edit?tab=sales")
+    end
+
+    it "pokazuje historię i rezerwacje wszystkich wariantów z nazwą wariantu" do
+      small = create(:variant, parent: main, name: "S", stock: 3)
+      Inventory.reserve!(account, small.id, 1, holder: create(:customer, account:), warehouse_id: Inventory.warehouses(account).first.id)
+
+      get "/inventory/products/#{main.id}/edit"
+
+      activity = inertia.props[:activity]
+      expect(activity["movements"].sole).to include("product" => "S", "after" => 3)
+      expect(activity["priceChanges"].sole).to include("product" => "S", "after" => "100,00 PLN")
+      expect(activity["reservations"].sole).to include("product" => "S", "quantity" => 1)
+      expect(inertia.props[:reservationsEnabled]).to be(true)
+    end
+
+    it "zapisuje wariant razem ze stanem" do
+      variant = create(:variant, parent: main, name: "M", sku: "LENA-M")
+      warehouse = Inventory.warehouses(account).first
+
+      patch "/inventory/variants/#{variant.id}", params: { variant: { name: "M", sku: "LENA-M" }, stock: { warehouse.id => "4" } }, as: :json
+
+      expect(Inventory.available(account, [ variant.id ])).to eq(variant.id => 4)
+      get "/inventory/variants/#{variant.id}/edit"
+      expect(inertia.props[:activity]["movements"].sole).to include("after" => 4)
+      expect(inertia.props[:parent]).to include("taxRate" => "23")
     end
 
     it "edytuje wariant i pokazuje okruszki do produktu głównego" do
@@ -335,14 +511,32 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
       expect(inertia.props[:parent]).to include("name" => "Sukienka Lena")
     end
 
-    it "usuwa wariant bez historii, ale nie z historią" do
+    it "usuwa wariant, także z towarem i historią" do
       fresh = create(:variant, parent: main)
       used = create(:variant, parent: main, stock: 1)
 
       delete "/inventory/variants/#{fresh.id}"
       delete "/inventory/variants/#{used.id}"
 
-      expect(main.variants.reload).to eq([ used ])
+      expect(main.variants.reload).to be_empty
+    end
+
+    it "po usunięciu wariantu wraca na zakładkę Warianty" do
+      variant = create(:variant, parent: main)
+
+      delete "/inventory/variants/#{variant.id}"
+
+      expect(response).to redirect_to("/inventory/products/#{main.id}/edit?tab=variants")
+    end
+
+    it "podpowiada ceny nowego wariantu z ostatniego wariantu, a pierwszego - z produktu" do
+      simple = create(:product, account:, price_cents: 4_990)
+      get "/inventory/products/#{simple.id}/variants/new"
+      expect(inertia.props[:variant]["prices"]).to include(retail.id.to_s => "49,90")
+
+      create(:variant, parent: main, price_cents: 12_900)
+      get "/inventory/products/#{main.id}/variants/new"
+      expect(inertia.props[:variant]["prices"]).to include(retail.id.to_s => "129,00")
     end
   end
 

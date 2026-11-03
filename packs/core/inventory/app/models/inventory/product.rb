@@ -9,7 +9,10 @@ module Inventory
   # ID produktów zaczynają się od 110 000 000 (migracja StartInventoryProductIdsAt110000000).
   class Product < ApplicationRecord
     TAX_RATES = [ 23, 8, 5, 0 ].freeze
-    STATUS_LABELS = { "active" => "Aktywny", "draft" => "Szkic", "archived" => "Zarchiwizowany" }.freeze
+    STATUS_LABELS = { "active" => "Aktywny", "draft" => "Szkic" }.freeze
+    # Wymiary i waga w formularzu: cm i kg („12,5”, „0,35”); w bazie milimetry i gramy.
+    DIMENSIONS = { length_cm: [ :length_mm, 10 ], width_cm: [ :width_mm, 10 ], height_cm: [ :height_mm, 10 ],
+                   weight_kg: [ :weight_grams, 1000 ] }.freeze
 
     belongs_to :account
     belongs_to :catalog
@@ -17,8 +20,9 @@ module Inventory
     has_many :variants, -> { order(:position, :id) }, class_name: "Product", foreign_key: :parent_id,
       dependent: :restrict_with_error, inverse_of: :parent
     has_many :prices, dependent: :delete_all, inverse_of: :product, autosave: true
+    has_many :images, -> { order(:position, :id) }, class_name: "ProductImage", dependent: :destroy, inverse_of: :product
 
-    enum :status, { draft: "draft", active: "active", archived: "archived" }, default: :active, validate: true
+    enum :status, { draft: "draft", active: "active" }, default: :active, validate: true
 
     attr_readonly :catalog_id, :parent_id
 
@@ -36,6 +40,8 @@ module Inventory
     validates :sku, presence: { message: "jest wymagane" }, if: :sellable?
     validates :tax_rate, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }
     validate :price_inputs_parsable
+    validate :dimension_inputs_parsable
+    validate :parameters_complete
     validate :parent_is_main_product
     validate :parent_without_stock, on: :create, if: :variant?
     validate :catalog_from_account
@@ -124,9 +130,49 @@ module Inventory
       prices.find { _1.price_group_id == price_group_id && !_1.marked_for_destruction? }&.amount_cents
     end
 
+    DIMENSIONS.each do |input, (column, factor)|
+      define_method(input) do
+        value = self[column]
+        value && (value.to_d / factor).to_s("F").sub(/\.?0+\z/, "").tr(".", ",")
+      end
+
+      define_method(:"#{input}=") do |raw|
+        (@dimension_errors ||= {}).delete(input)
+        text = raw.to_s.gsub(/[[:space:]]/, "").tr(",", ".")
+        if text.empty?
+          self[column] = nil
+        elsif text.match?(/\A\d+(\.\d+)?\z/)
+          self[column] = (text.to_d * factor).round
+        else
+          @dimension_errors[input] = "Podaj liczbę, np. 12,5"
+        end
+      end
+    end
+
+    # Parametry: [{ "name" => "Materiał", "value" => "bawełna" }, …]. Wiersze bez nazwy i wartości są pomijane.
+    def parameters=(rows)
+      rows = rows.values if rows.respond_to?(:values) && !rows.is_a?(Array)
+      super(Array(rows).filter_map do |row|
+        row = row.to_h.stringify_keys
+        name, value = row["name"].to_s.strip, row["value"].to_s.strip
+        { "name" => name, "value" => value } unless name.empty? && value.empty?
+      end)
+    end
+
     private
       def price_inputs_parsable
         @price_errors.to_h.each { |group_id, message| errors.add(:"prices.#{group_id}", message) }
+      end
+
+      def dimension_inputs_parsable
+        @dimension_errors.to_h.each { |input, message| errors.add(input, message) }
+      end
+
+      def parameters_complete
+        parameters.each_with_index do |row, index|
+          errors.add(:"parameters.#{index}.name", "Podaj nazwę parametru") if row["name"].empty?
+          errors.add(:"parameters.#{index}.value", "Podaj wartość parametru") if row["value"].empty?
+        end
       end
 
       def parent_is_main_product

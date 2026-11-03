@@ -1,10 +1,10 @@
 import { Head } from "@inertiajs/react"
-import { BoxesIcon, FileTextIcon, HistoryIcon, TagsIcon, Trash2Icon } from "lucide-react"
+import { BookmarkIcon, HistoryIcon, TagsIcon, Trash2Icon } from "lucide-react"
 
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
 import { PricesPanel } from "@/components/inventory/prices-panel"
-import { MovementsPanel, StockPanel } from "@/components/inventory/stock-panels"
-import { catalogCrumbs, type ProductStock } from "@/components/inventory/types"
+import { HistoryPanel, ReservationsPanel, StockFields } from "@/components/inventory/stock-panels"
+import { catalogCrumbs, stockInputs, type ProductActivity, type ProductStock } from "@/components/inventory/types"
 import { useVariantForm, VariantGeneralFields, type VariantFormProps } from "@/components/inventory/variant-form"
 import { PageBar } from "@/components/page-bar"
 import { SaveBar } from "@/components/save-bar"
@@ -12,17 +12,18 @@ import { TabbedCard } from "@/components/tabbed-card"
 import { Button } from "@/components/ui/button"
 import { useTabParam } from "@/hooks/use-tab-param"
 
-const TABS = ["general", "prices", "stock", "history"] as const
+const TABS = ["variant", "history", "reservations"] as const
 type Tab = (typeof TABS)[number]
 
-type Props = VariantFormProps & { stock: ProductStock }
+type Props = VariantFormProps & { stock: ProductStock; activity: ProductActivity; reservationsEnabled: boolean }
 
-// Karta wariantu w zakładkach: Ogólne, Ceny, Stan, Historia.
-export default function InventoryVariantEdit({ stock, ...props }: Props) {
+// Karta wariantu: Wariant (dane, ceny, stan - jeden zapis), Historia stanów i cen, Rezerwacje (gdy włączone).
+export default function InventoryVariantEdit({ stock, activity, reservationsEnabled, ...props }: Props) {
   const { variant, parent, catalog } = props
-  const state = useVariantForm(props)
-  const [tab, setTab] = useTabParam<Tab>(TABS, "general")
+  const state = useVariantForm(props, stockInputs(stock))
+  const [tab, setTab] = useTabParam<Tab>(TABS, "variant")
   const label = `${parent.name} - ${variant.name}`
+  const showReservations = reservationsEnabled || activity.reservations.length > 0
 
   return (
     <>
@@ -32,7 +33,7 @@ export default function InventoryVariantEdit({ stock, ...props }: Props) {
         actions={
           <ConfirmDelete
             title={`Usunąć wariant „${variant.name}”?`}
-            description="Można usunąć tylko wariant bez historii magazynowej i zamówień."
+            description="Usuwa wariant razem ze stanem, historią i rezerwacjami. Zamówienia z tym wariantem zostają."
             url={`/inventory/variants/${variant.id}`}
             trigger={
               <Button variant="ghost">
@@ -47,25 +48,34 @@ export default function InventoryVariantEdit({ stock, ...props }: Props) {
       <TabbedCard
         label="Sekcje wariantu"
         value={tab}
-        onChange={(value) => setTab(value as (typeof TABS)[number])}
+        onChange={(value) => setTab(value as Tab)}
         items={[
-          { value: "general", label: "Ogólne", icon: FileTextIcon, error: state.generalHasErrors },
-          { value: "prices", label: "Ceny", icon: TagsIcon, error: state.pricesHaveErrors },
-          { value: "stock", label: "Stan", icon: BoxesIcon },
+          { value: "variant", label: "Wariant", icon: TagsIcon, error: state.hasErrors },
+          ...(showReservations
+            ? [{ value: "reservations", label: activity.reservations.length > 0 ? `Rezerwacje (${activity.reservations.length})` : "Rezerwacje", icon: BookmarkIcon }]
+            : []),
           { value: "history", label: "Historia", icon: HistoryIcon },
         ]}
       >
-
-      {tab === "general" && <VariantGeneralFields state={state} {...props} />}
-      {tab === "prices" && <PricesPanel priceGroups={props.priceGroups} value={state.form.data.prices} onChange={(prices) => state.form.setData("prices", prices)} errors={state.errors} />}
-      {tab === "stock" && <StockPanel productId={variant.id!} stock={stock} />}
-      {tab === "history" && <MovementsPanel stock={stock} />}
-
+        {tab === "variant" && (
+          <>
+            <VariantGeneralFields state={state} {...props} />
+            <PricesPanel
+              priceGroups={props.priceGroups}
+              value={state.form.data.prices}
+              onChange={(prices) => state.form.setData("prices", prices)}
+              errors={state.errors}
+              taxRate={{ value: parent.taxRate, inherited: true }}
+            />
+            <StockFields stock={stock} value={state.form.data.stock} onChange={(value) => state.form.setData("stock", value)} errors={state.errors} />
+          </>
+        )}
+        {tab === "history" && <HistoryPanel activity={activity} />}
+        {tab === "reservations" && <ReservationsPanel reservations={activity.reservations} />}
       </TabbedCard>
 
-      {/* Zakładka „Stan” ma własny pasek zapisu stanów. */}
       <SaveBar
-        visible={state.form.isDirty && tab !== "stock"}
+        visible={state.form.isDirty}
         processing={state.form.processing}
         onSave={() => state.save(tab)}
         onDiscard={() => {

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_03_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_03_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -18,6 +18,34 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_130000) do
     t.string "name", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "active_storage_attachments", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "record_type", null: false
+    t.bigint "record_id", null: false
+    t.bigint "blob_id", null: false
+    t.datetime "created_at", null: false
+    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
+    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
+  end
+
+  create_table "active_storage_blobs", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "filename", null: false
+    t.string "content_type"
+    t.text "metadata"
+    t.string "service_name", null: false
+    t.bigint "byte_size", null: false
+    t.string "checksum"
+    t.datetime "created_at", null: false
+    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
+  end
+
+  create_table "active_storage_variant_records", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.string "variation_digest", null: false
+    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
   create_table "api_tokens", force: :cascade do |t|
@@ -106,6 +134,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_130000) do
     t.index ["warehouse_id"], name: "index_inventory_movements_on_warehouse_id"
   end
 
+  create_table "inventory_price_changes", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "product_id", null: false
+    t.bigint "price_group_id", null: false
+    t.integer "amount_cents_before"
+    t.integer "amount_cents_after"
+    t.bigint "user_id"
+    t.datetime "created_at", null: false
+    t.index ["account_id"], name: "index_inventory_price_changes_on_account_id"
+    t.index ["price_group_id"], name: "index_inventory_price_changes_on_price_group_id"
+    t.index ["product_id"], name: "index_inventory_price_changes_on_product_id"
+    t.index ["user_id"], name: "index_inventory_price_changes_on_user_id"
+  end
+
   create_table "inventory_price_groups", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.string "name", null: false
@@ -132,6 +174,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_130000) do
     t.check_constraint "amount_cents >= 0", name: "inventory_prices_amount_non_negative"
   end
 
+  create_table "inventory_product_images", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "product_id", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_inventory_product_images_on_account_id"
+    t.index ["product_id"], name: "index_inventory_product_images_on_product_id"
+  end
+
   create_table "inventory_products", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "catalog_id", null: false
@@ -146,6 +198,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_130000) do
     t.integer "position", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "description_extra_1"
+    t.text "description_extra_2"
+    t.text "description_extra_3"
+    t.jsonb "parameters", default: [], null: false
+    t.integer "length_mm"
+    t.integer "width_mm"
+    t.integer "height_mm"
     t.index ["account_id", "ean"], name: "index_inventory_products_on_account_id_and_ean"
     t.index ["account_id"], name: "index_inventory_products_on_account_id"
     t.index ["catalog_id", "parent_id"], name: "index_inventory_products_on_catalog_id_and_parent_id"
@@ -324,6 +383,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_130000) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "api_tokens", "accounts"
   add_foreign_key "customers_customers", "accounts"
   add_foreign_key "customers_identities", "accounts"
@@ -334,30 +395,36 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_130000) do
   add_foreign_key "inventory_catalog_warehouses", "inventory_warehouses", column: "warehouse_id"
   add_foreign_key "inventory_catalogs", "accounts"
   add_foreign_key "inventory_movements", "accounts"
-  add_foreign_key "inventory_movements", "inventory_products", column: "product_id"
+  add_foreign_key "inventory_movements", "inventory_products", column: "product_id", on_delete: :cascade
   add_foreign_key "inventory_movements", "inventory_warehouses", column: "warehouse_id"
   add_foreign_key "inventory_movements", "users"
+  add_foreign_key "inventory_price_changes", "accounts"
+  add_foreign_key "inventory_price_changes", "inventory_price_groups", column: "price_group_id", on_delete: :cascade
+  add_foreign_key "inventory_price_changes", "inventory_products", column: "product_id", on_delete: :cascade
+  add_foreign_key "inventory_price_changes", "users", on_delete: :nullify
   add_foreign_key "inventory_price_groups", "accounts"
   add_foreign_key "inventory_prices", "accounts"
   add_foreign_key "inventory_prices", "inventory_price_groups", column: "price_group_id", on_delete: :cascade
   add_foreign_key "inventory_prices", "inventory_products", column: "product_id", on_delete: :cascade
+  add_foreign_key "inventory_product_images", "accounts"
+  add_foreign_key "inventory_product_images", "inventory_products", column: "product_id", on_delete: :cascade
   add_foreign_key "inventory_products", "accounts"
   add_foreign_key "inventory_products", "inventory_catalogs", column: "catalog_id"
   add_foreign_key "inventory_products", "inventory_products", column: "parent_id"
   add_foreign_key "inventory_reservations", "accounts"
-  add_foreign_key "inventory_reservations", "inventory_products", column: "product_id"
+  add_foreign_key "inventory_reservations", "inventory_products", column: "product_id", on_delete: :cascade
   add_foreign_key "inventory_reservations", "inventory_warehouses", column: "warehouse_id"
   add_foreign_key "inventory_source_settings", "accounts"
   add_foreign_key "inventory_source_settings", "inventory_warehouses", column: "warehouse_id", on_delete: :nullify
   add_foreign_key "inventory_stock_items", "accounts"
-  add_foreign_key "inventory_stock_items", "inventory_products", column: "product_id"
+  add_foreign_key "inventory_stock_items", "inventory_products", column: "product_id", on_delete: :cascade
   add_foreign_key "inventory_stock_items", "inventory_warehouses", column: "warehouse_id"
   add_foreign_key "inventory_warehouses", "accounts"
   add_foreign_key "memberships", "accounts"
   add_foreign_key "memberships", "users"
   add_foreign_key "module_licenses", "accounts"
   add_foreign_key "orders_items", "accounts"
-  add_foreign_key "orders_items", "inventory_products", column: "product_id"
+  add_foreign_key "orders_items", "inventory_products", column: "product_id", on_delete: :nullify
   add_foreign_key "orders_items", "orders_orders", column: "order_id"
   add_foreign_key "orders_number_sequences", "accounts"
   add_foreign_key "orders_orders", "accounts"

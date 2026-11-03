@@ -12,8 +12,8 @@ export type RowAction = {
   hidden?: boolean
 }
 
-// Akcje wiersza tabeli schowane pod „⋯”. Akcje usuwające trafiają na koniec, za separatorem.
-export function RowActions({ actions, label = "Akcje" }: { actions: RowAction[]; label?: string }) {
+// Akcje wiersza tabeli (albo strony - `size="icon"`) schowane pod „⋯”. Akcje usuwające trafiają na koniec, za separatorem.
+export function RowActions({ actions, label = "Akcje", size = "icon-xs" }: { actions: RowAction[]; label?: string; size?: "icon-xs" | "icon" }) {
   const visible = actions.filter((action) => !action.hidden)
   const regular = visible.filter((action) => !action.destructive)
   const destructive = visible.filter((action) => action.destructive)
@@ -29,7 +29,7 @@ export function RowActions({ actions, label = "Akcje" }: { actions: RowAction[];
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon-xs" aria-label={label} onClick={(e) => e.stopPropagation()}>
+          <Button variant="ghost" size={size} aria-label={label} onClick={(e) => e.stopPropagation()}>
             <MoreHorizontalIcon />
           </Button>
         }

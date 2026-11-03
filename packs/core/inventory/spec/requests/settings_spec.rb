@@ -63,8 +63,7 @@ RSpec.describe "Produkty - ustawienia: katalogi, magazyny, ceny i ogólne", type
       product = create(:product, account:, stock: 5)
       Inventory.reserve!(account, product.id, 4, holder: create(:customer, account:), warehouse_id: main.id)
 
-      patch "/inventory/products/#{product.id}/stock", params: { stock: { main.id => "1" } },
-        headers: { "HTTP_REFERER" => "/inventory/products/#{product.id}/edit" }
+      patch "/inventory/products/#{product.id}", params: { product: { name: product.name }, stock: { main.id => "1" } }, as: :json
 
       follow_redirect!
       expect(inertia.props[:errors]["stock.#{main.id}"].first).to include("zarezerwowanych")
@@ -76,8 +75,7 @@ RSpec.describe "Produkty - ustawienia: katalogi, magazyny, ceny i ogólne", type
       patch "/inventory/settings/warehouses/#{main.id}", params: { strict_control: true }
       expect(main.reload).to be_strict_control
 
-      patch "/inventory/products/#{product.id}/stock", params: { stock: { main.id => "9" } },
-        headers: { "HTTP_REFERER" => "/inventory/products/#{product.id}/edit" }
+      patch "/inventory/products/#{product.id}", params: { product: { name: product.name }, stock: { main.id => "9" } }, as: :json
 
       follow_redirect!
       expect(inertia.props[:errors]["stock.#{main.id}"].first).to include("ścisłą kontrolę")
@@ -93,10 +91,10 @@ RSpec.describe "Produkty - ustawienia: katalogi, magazyny, ceny i ogólne", type
       post "/inventory/reservations/#{fulfilled.id}/fulfill"
 
       get "/inventory/products/#{product.id}/edit"
-      stock = inertia.props[:stock]
-      expect(stock["warehouses"].sole).to include("on_hand" => 4, "reserved" => 0)
-      expect(stock["reservations"]).to be_empty
-      expect(stock["movements"].first).to include("reason" => "Sprzedaż", "before" => 5, "quantity" => -1, "after" => 4, "user" => user.name)
+      activity = inertia.props[:activity]
+      expect(inertia.props[:stock]["warehouses"].sole).to include("on_hand" => 4, "reserved" => 0)
+      expect(activity["reservations"]).to be_empty
+      expect(activity["movements"].first).to include("reason" => "Sprzedaż", "before" => 5, "quantity" => -1, "after" => 4, "user" => user.name)
     end
 
     it "ustawia magazyn i rezerwację dla źródła zamówień" do

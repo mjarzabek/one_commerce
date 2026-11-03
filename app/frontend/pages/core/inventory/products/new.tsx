@@ -2,18 +2,27 @@ import { Head } from "@inertiajs/react"
 import { FileTextIcon, TagsIcon } from "lucide-react"
 
 import { PricesPanel } from "@/components/inventory/prices-panel"
-import { priceGroupsForCatalog, ProductGeneralFields, useProductForm, type ProductFormProps } from "@/components/inventory/product-form"
+import { ProductImagesCard } from "@/components/inventory/product-images"
+import {
+  priceGroupsForCatalog,
+  ProductBasicsCard,
+  ProductDescriptionsCard,
+  ProductDimensionsCard,
+  ProductParametersCard,
+  useProductForm,
+  type ProductFormProps,
+} from "@/components/inventory/product-form"
 import { catalogCrumbs } from "@/components/inventory/types"
 import { PageBar } from "@/components/page-bar"
 import { SaveBar } from "@/components/save-bar"
 import { TabbedCard } from "@/components/tabbed-card"
 import { useTabParam } from "@/hooks/use-tab-param"
 
-const TABS = ["general", "prices"] as const
+const TABS = ["product", "sales"] as const
 
 export default function InventoryProductNew(props: ProductFormProps) {
   const state = useProductForm(props.product)
-  const [tab, setTab] = useTabParam(TABS, "general")
+  const [tab, setTab] = useTabParam(TABS, "product")
 
   return (
     <>
@@ -25,17 +34,30 @@ export default function InventoryProductNew(props: ProductFormProps) {
         value={tab}
         onChange={(value) => setTab(value as (typeof TABS)[number])}
         items={[
-          { value: "general", label: "Ogólne", icon: FileTextIcon, error: state.generalHasErrors },
-          { value: "prices", label: "Ceny", icon: TagsIcon, error: state.pricesHaveErrors },
+          { value: "product", label: "Karta produktu", icon: FileTextIcon, error: state.productHasErrors },
+          { value: "sales", label: "Sprzedaż", icon: TagsIcon, error: state.salesHaveErrors },
         ]}
       >
-
-      {tab === "general" && <ProductGeneralFields state={state} {...props} />}
-      {tab === "prices" && <PricesPanel priceGroups={priceGroupsForCatalog(props, state.form.data.catalog_id)} value={state.form.data.prices} onChange={(prices) => state.form.setData("prices", prices)} errors={state.errors} />}
-
+        {tab === "product" && (
+          <>
+            <ProductBasicsCard state={state} {...props} />
+            <ProductImagesCard productId={null} images={[]} />
+            <ProductDescriptionsCard state={state} />
+            <ProductParametersCard state={state} />
+            <ProductDimensionsCard state={state} />
+          </>
+        )}
+        {tab === "sales" && (
+          <PricesPanel
+            priceGroups={priceGroupsForCatalog(props, state.form.data.catalog_id)}
+            value={state.form.data.prices}
+            onChange={(prices) => state.form.setData("prices", prices)}
+            errors={state.errors}
+            taxRate={{ value: state.form.data.tax_rate, options: props.taxRates, onChange: (value) => state.form.setData("tax_rate", value) }}
+          />
+        )}
       </TabbedCard>
 
-      <p className="text-muted-foreground text-sm">Stan w magazynach i warianty (rozmiary, kolory) dodasz po zapisaniu produktu.</p>
       <SaveBar visible processing={state.form.processing} label="Dodaj produkt" onSave={() => state.save(tab)} />
     </>
   )

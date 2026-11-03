@@ -175,30 +175,33 @@ module Inventory
     scope.select(&:sellable?).map { product_info(_1, price_group) }
   end
 
-  DeleteResult = Data.define(:deleted, :skipped)
-
-  # Usuwa produkty główne razem z wariantami. Pomija (i zwraca w `skipped`) produkty, które mają towar
-  # lub rezerwacje, historię ruchów albo są w zamówieniach - takie należy zarchiwizować.
+  # Usuwa produkty główne razem z wariantami - także z towarem i historią. Baza usuwa z nimi stany, ruchy,
+  # rezerwacje, ceny i historię cen; pozycje zamówień zostają (z własną nazwą, SKU i ceną), bez powiązania z produktem.
+  # Zwraca liczbę usuniętych produktów.
   def delete_products!(account, ids)
-    deleted = 0
-    skipped = []
-    Product.main.where(account:, id: ids).includes(:variants).find_each do |product|
+    Product.main.where(account:, id: ids).includes(:variants).find_each.count do |product|
       family = [ product.id, *product.variants.map(&:id) ]
-      if StockItem.where(product_id: family).where("on_hand > 0 OR reserved > 0").exists?
-        skipped << product.name
-        next
-      end
-
       Product.transaction(requires_new: true) do
-        StockItem.where(product_id: family).delete_all
+        ProductImage.where(product_id: family).find_each(&:destroy!)
         Product.where(id: product.variants.map(&:id)).delete_all
         Product.where(id: product.id).delete_all
       end
-      deleted += 1
-    rescue ActiveRecord::InvalidForeignKey
-      skipped << product.name
     end
-    DeleteResult.new(deleted:, skipped:)
+  end
+
+  # Kopia produktu głównego jako szkic: dane, opisy, parametry, wymiary, ceny, zdjęcia i warianty - bez stanu i historii.
+  # SKU dostaje końcówkę „-KOPIA” (SKU jest unikalne w katalogu), EAN zostaje pusty.
+  def duplicate_product!(account, id)
+    source = Product.main.where(account:).includes(:prices, :images, variants: :prices).find(id)
+    Product.transaction do
+      copy = duplicate_record(source, name: "#{source.name} (kopia)", status: :draft)
+      source.images.each do |image|
+        copy.images.create!(position: image.position, file: { io: StringIO.new(image.file.download),
+          filename: image.file.filename.to_s, content_type: image.file.content_type })
+      end
+      source.variants.each { duplicate_record(_1, parent: copy) }
+      copy
+    end
   end
 
   def update_status!(account, ids, status)
@@ -343,11 +346,11 @@ module Inventory
 
   # --- Kwoty ---------------------------------------------------------------------------------
 
+  # „1 299,90 PLN” - zawsze z kodem waluty, tak jak w grupach cenowych i polach cen.
   def format_price(cents, currency = "PLN")
     return if cents.nil?
 
-    unit = currency == "PLN" ? "zł" : currency
-    ActiveSupport::NumberHelper.number_to_currency(cents.to_d / 100, unit:, format: "%n %u", separator: ",", delimiter: " ",
+    ActiveSupport::NumberHelper.number_to_currency(cents.to_d / 100, unit: currency, format: "%n %u", separator: ",", delimiter: " ",
       precision: 2, strip_insignificant_zeros: false)
   end
 
@@ -375,6 +378,23 @@ module Inventory
     product
   end
   private_class_method :build_product
+
+  def duplicate_record(source, **attrs)
+    copy = source.dup
+    copy.assign_attributes(sku: duplicate_sku(source), ean: nil, **attrs)
+    source.prices.each { copy.prices.build(account: copy.account, price_group_id: _1.price_group_id, amount_cents: _1.amount_cents) }
+    copy.save!
+    copy
+  end
+  private_class_method :duplicate_record
+
+  def duplicate_sku(source)
+    return if source.sku.nil?
+
+    taken = Product.where(catalog_id: source.catalog_id).where("sku LIKE ?", "#{Product.sanitize_sql_like(source.sku)}-KOPIA%").pluck(:sku)
+    (1..).lazy.map { "#{source.sku}-KOPIA#{"-#{_1}" if _1 > 1}" }.find { !taken.include?(_1) }
+  end
+  private_class_method :duplicate_sku
 
   def product_info(product, price_group)
     ProductInfo.new(

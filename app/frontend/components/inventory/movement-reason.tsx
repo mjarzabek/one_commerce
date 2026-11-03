@@ -1,4 +1,5 @@
-import { ArrowDownToLineIcon, ShoppingCartIcon, SlidersHorizontalIcon, Undo2Icon, type LucideIcon } from "lucide-react"
+import { ArrowDownIcon, ArrowDownToLineIcon, ArrowUpIcon, ShoppingCartIcon, SlidersHorizontalIcon, Undo2Icon, type LucideIcon } from "lucide-react"
+import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -13,33 +14,36 @@ const REASONS: Record<string, { icon: LucideIcon; className: string }> = {
 export function MovementReason({ reason }: { reason: string }) {
   const { icon: Icon, className } = REASONS[reason] ?? { icon: SlidersHorizontalIcon, className: "" }
   return (
-    <span className={cn("inline-flex items-center gap-1.5 font-medium", className)}>
-      <Icon className="size-3.5" />
+    <span className="inline-flex items-center gap-1.5">
+      <Icon className={cn("size-3.5", className)} />
       {reason}
     </span>
   )
 }
 
-// Zmiana stanu w jednym polu: „12 → 10” i plakietka z różnicą.
-export function StockChange({ before, after, quantity }: { before: number; after: number; quantity: number }) {
+const ARROWS = {
+  up: { icon: ArrowUpIcon, label: "Wzrost", className: "text-emerald-600 dark:text-emerald-400" },
+  down: { icon: ArrowDownIcon, label: "Spadek", className: "text-destructive" },
+} as const
+
+// Zmiana wartości (stan, cena): strzałka (wzrost - zielona w górę, spadek - czerwona w dół; opis po najechaniu),
+// przekreślona poprzednia i nowa wartość. Bez wzrostu i spadku (np. ustawienie ceny) - sama nowa wartość.
+export function ValueChange({ direction, before, after }: { direction: string | null; before: ReactNode; after: ReactNode }) {
+  const arrow = direction === "up" || direction === "down" ? ARROWS[direction] : null
   return (
-    <span className="inline-flex items-center gap-2 tabular-nums">
-      <span className="text-muted-foreground">{before}</span>
-      <span className="text-muted-foreground/60" aria-hidden>
-        →
-      </span>
-      <span className="font-semibold">{after}</span>
-      <span
-        className={cn(
-          "rounded-md px-1.5 py-0.5 text-xs font-medium",
-          quantity < 0 ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-        )}
-      >
-        {quantity > 0 ? `+${quantity}` : `−${Math.abs(quantity)}`}
-      </span>
-      <span className="sr-only">
-        (było {before}, jest {after})
-      </span>
+    <span className="inline-flex items-center gap-1.5 tabular-nums">
+      {arrow && (
+        <span title={arrow.label} className="inline-flex">
+          <arrow.icon className={cn("size-4 shrink-0", arrow.className)} aria-label={arrow.label} />
+        </span>
+      )}
+      {before != null && <span className="text-muted-foreground line-through">{before}</span>}
+      <span className="font-medium">{after}</span>
     </span>
   )
+}
+
+// Zmiana stanu: strzałka, stan przed (przekreślony) i po.
+export function StockChange({ before, after }: { before: number; after: number }) {
+  return <ValueChange direction={after > before ? "up" : after < before ? "down" : null} before={before} after={after} />
 }

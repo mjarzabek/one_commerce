@@ -62,7 +62,7 @@ module Inventory
     # Produkty bieżącej strony z wariantami i cenami (`stock_value`, `min_price` - patrz Product.with_family_metrics).
     def records
       @records ||= pagy.records(scope.order(Arel.sql("#{SORT_COLUMNS.fetch(sort)} #{direction} NULLS LAST"), :id))
-        .includes(:prices, variants: :prices).to_a
+        .includes(:prices, variants: :prices, images: { file_attachment: :blob }).to_a
     end
 
     # Id wszystkich pasujących produktów (akcje masowe na „wszystkich stronach”).

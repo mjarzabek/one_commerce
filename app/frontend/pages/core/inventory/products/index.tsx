@@ -5,12 +5,17 @@ import {
   ArrowUpIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  HistoryIcon,
+  ImageIcon,
   LayersIcon,
+  LibraryIcon,
   PlusIcon,
   SearchIcon,
   ShirtIcon,
   TagIcon,
+  TagsIcon,
   Trash2Icon,
+  WarehouseIcon,
 } from "lucide-react"
 import { Fragment, useEffect, useRef, useState } from "react"
 
@@ -26,7 +31,7 @@ import { InlinePrice, InlineStock, LockedStock, StockValue } from "@/components/
 import { InventoryTabs } from "@/components/inventory/inventory-tabs"
 import { OptionSelect } from "@/components/option-select"
 import { StatusBadge } from "@/components/inventory/status-badge"
-import type { CatalogOption } from "@/components/inventory/types"
+import { variantsWord, type CatalogOption } from "@/components/inventory/types"
 import { PageBar } from "@/components/page-bar"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -56,7 +61,8 @@ type Row = {
   reserved: number
   sellable: boolean
 }
-type ProductRow = Row & { status: string; variants: Row[] }
+// `image` - miniatura pierwszego zdjęcia (null - brak zdjęć).
+type ProductRow = Row & { status: string; image: string | null; variants: Row[] }
 
 type View = { q: string; catalog_id: number; warehouse_id: number | null; price_group_id: number; sort: string; dir: "asc" | "desc" }
 
@@ -82,9 +88,6 @@ const ALL = "all"
 const productsWord = (count: number) =>
   count === 1 ? "produkt" : [2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100) ? "produkty" : "produktów"
 
-const variantsWord = (count: number) =>
-  count === 1 ? "wariant" : [2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100) ? "warianty" : "wariantów"
-
 // Sortowanie kolumny „Produkt” (nazwa i kody w jednej komórce): wartości `sort:dir`.
 const PRODUCT_SORTS = [
   { value: "name:asc", label: "Nazwa A → Z" },
@@ -95,8 +98,35 @@ const PRODUCT_SORTS = [
   { value: "sku:desc", label: "SKU Z → A" },
 ]
 
-// Komórka „Produkt”: znacznik (ikona wariantów albo „↳”) w stałym miejscu, nazwa, a pod nią ID · SKU · EAN (bez pustych).
-function ProductCell({ row, href, marker, variant = false }: { row: Row; href: string; marker?: React.ReactNode; variant?: boolean }) {
+// Miniatura zdjęcia produktu; bez zdjęcia (albo gdy miniatura się nie wczyta) - placeholder.
+function ProductThumb({ src, name }: { src: string | null; name: string }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <span className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md border">
+      {src && !failed ? (
+        <img src={src} alt={name} loading="lazy" decoding="async" className="size-full object-cover" onError={() => setFailed(true)} />
+      ) : (
+        <ImageIcon className="size-4" aria-label="Brak zdjęcia" />
+      )}
+    </span>
+  )
+}
+
+// Komórka „Produkt”: miniatura (u wariantu „↳” w jej miejscu), nazwa z opcjonalnym dodatkiem (przełącznik wariantów),
+// a pod nią ID · SKU · EAN (bez pustych).
+function ProductCell({
+  row,
+  href,
+  image,
+  addon,
+  variant = false,
+}: {
+  row: Row
+  href: string
+  image: React.ReactNode
+  addon?: React.ReactNode
+  variant?: boolean
+}) {
   const codes = (
     [
       ["ID", row.id],
@@ -105,17 +135,18 @@ function ProductCell({ row, href, marker, variant = false }: { row: Row; href: s
     ] as const
   ).filter(([, value]) => value != null && value !== "")
   return (
-    <div className="flex min-w-0 items-start gap-1.5">
-      <span className="text-muted-foreground flex h-5 w-9 shrink-0 items-center justify-end text-xs">{marker}</span>
-      <div className="min-w-0">
-        <div className="truncate">
+    <div className="flex min-w-0 items-center gap-3">
+      {image}
+      <div className="max-w-md min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
           <Link
             href={href}
-            className={cn("hover:text-primary underline-offset-4 hover:underline", !variant && "font-medium")}
+            className={cn("hover:text-primary truncate underline-offset-4 hover:underline", !variant && "font-medium")}
             title={variant ? `Edytuj wariant „${row.name}”` : `Edytuj produkt „${row.name}”`}
           >
             {row.name}
           </Link>
+          {addon}
         </div>
         <p className="text-muted-foreground truncate text-xs tabular-nums" title={codes.map(([label, value]) => `${label} ${value}`).join(" · ")}>
           {codes.map(([label, value], index) => (
@@ -130,6 +161,20 @@ function ProductCell({ row, href, marker, variant = false }: { row: Row; href: s
   )
 }
 
+// Skrót do historii stanów i cen na karcie produktu albo wariantu.
+function HistoryLink({ href, name }: { href: string; name: string }) {
+  return (
+    <Link
+      href={href}
+      title="Historia stanów i cen"
+      aria-label={`Historia - ${name}`}
+      className={buttonVariants({ variant: "ghost", size: "icon-xs", className: "text-muted-foreground" })}
+    >
+      <HistoryIcon />
+    </Link>
+  )
+}
+
 export default function InventoryProducts(props: Props) {
   const { products, pagination, filterSchema, filters, view, catalogs, catalog, warehouses, statuses, priceGroups } = props
   const [query, setQuery] = useState(view.q)
@@ -137,7 +182,7 @@ export default function InventoryProducts(props: Props) {
   const selection = useSelection()
   const [filtersOpen, setFiltersOpen] = usePersistentState("inventory-products-filters-open", false)
   const multiWarehouse = warehouses.length > 1
-  // Stan zmienia się z listy w jednym magazynie: wybranym w „Stan: …” albo jedynym w katalogu.
+  // Stan zmienia się z listy w jednym magazynie: wybranym w selekcie magazynu albo jedynym w katalogu.
   const stockWarehouse = view.warehouse_id ? warehouses.find((w) => w.id === view.warehouse_id) : warehouses.length === 1 ? warehouses[0] : undefined
 
   const priceCell = (row: Row, name: string) =>
@@ -154,7 +199,7 @@ export default function InventoryProducts(props: Props) {
     if (row.sellable && stockWarehouse) {
       return <InlineStock productId={row.id} name={name} warehouseId={stockWarehouse.id} available={row.stock} reserved={row.reserved} />
     }
-    const hint = row.sellable ? "Stan łączny - wybierz magazyn w „Stan: …”, aby go zmienić" : "Stan wariantów zmienisz po ich rozwinięciu"
+    const hint = row.sellable ? "Stan łączny - wybierz magazyn nad tabelą, aby go zmienić" : "Stan wariantów zmienisz po ich rozwinięciu"
     return (
       <span title={hint}>
         <StockValue available={row.stock} reserved={row.reserved} />
@@ -323,24 +368,30 @@ export default function InventoryProducts(props: Props) {
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {catalogs.length > 1 && (
               <OptionSelect
-                className="w-44"
-                options={catalogs.map((c) => ({ value: String(c.id), label: `Katalog: ${c.name}` }))}
+                className="w-auto"
+                icon={LibraryIcon}
+                label="Katalog"
+                options={catalogs.map((c) => ({ value: String(c.id), label: c.name }))}
                 value={String(catalog.id)}
                 onChange={(value) => visit({ catalog_id: Number(value), warehouse_id: null, price_group_id: null })}
               />
             )}
             {priceGroups.length > 1 && (
               <OptionSelect
-                className="w-44"
-                options={priceGroups.map((g) => ({ value: String(g.id), label: `Cena: ${g.name}` }))}
+                className="w-auto"
+                icon={TagsIcon}
+                label="Cena w grupie cenowej"
+                options={priceGroups.map((g) => ({ value: String(g.id), label: g.name }))}
                 value={String(view.price_group_id)}
                 onChange={(value) => visit({ price_group_id: Number(value), page: pagination.page }, { keepSelection: true })}
               />
             )}
             {multiWarehouse && (
               <OptionSelect
-                className="w-52"
-                options={[{ value: ALL, label: "Stan: łącznie" }, ...warehouses.map((w) => ({ value: String(w.id), label: `Stan: ${w.name}` }))]}
+                className="w-auto"
+                icon={WarehouseIcon}
+                label="Stan w magazynie"
+                options={[{ value: ALL, label: "Wszystkie magazyny" }, ...warehouses.map((w) => ({ value: String(w.id), label: w.name }))]}
                 value={view.warehouse_id ? String(view.warehouse_id) : ALL}
                 onChange={(value) => visit({ warehouse_id: value === ALL ? null : Number(value), page: pagination.page }, { keepSelection: true })}
               />
@@ -382,11 +433,11 @@ export default function InventoryProducts(props: Props) {
           <Table className="min-w-[760px] table-fixed">
             <colgroup>
               <col className="w-10" />
-              <col className="w-8" />
               <col />
               <col className="w-32" />
               <col className="w-28" />
               <col className="w-36" />
+              <col className="w-12" />
             </colgroup>
             <TableHeader className="bg-muted/50">
               <TableRow>
@@ -399,7 +450,6 @@ export default function InventoryProducts(props: Props) {
                     onCheckedChange={(checked) => selection.setPage(pageIds, !!checked)}
                   />
                 </TableHead>
-                <TableHead className="w-8 px-0" />
                 <ProductSortHead />
                 <SortHead field="price" className="text-right">
                   Cena
@@ -407,7 +457,10 @@ export default function InventoryProducts(props: Props) {
                 <SortHead field="stock" className="text-right">
                   Stan
                 </SortHead>
-                <TableHead className="pr-4">Status</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="pr-4">
+                  <span className="sr-only">Historia</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -444,32 +497,26 @@ export default function InventoryProducts(props: Props) {
                         <TableCell className="pl-4">
                           <Checkbox aria-label={`Zaznacz ${product.name}`} checked={selected} onCheckedChange={() => selection.toggle(product.id)} />
                         </TableCell>
-                        <TableCell className="px-0">
-                          {hasVariants && (
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              aria-label={open ? "Zwiń warianty" : "Rozwiń warianty"}
-                              aria-expanded={open}
-                              onClick={() => toggleExpanded(product.id)}
-                            >
-                              <ChevronRightIcon className={cn("transition-transform", open && "rotate-90")} />
-                            </Button>
-                          )}
-                        </TableCell>
                         <TableCell>
                           <ProductCell
                             row={product}
                             href={`/inventory/products/${product.id}/edit`}
-                            marker={
+                            image={<ProductThumb src={product.image} name={product.name} />}
+                            addon={
                               hasVariants && (
-                                <span
-                                  className="inline-flex items-center gap-1"
-                                  title={`${product.variants.length} ${variantsWord(product.variants.length)}`}
+                                <Button
+                                  variant="outline"
+                                  size="xs"
+                                  className="text-muted-foreground -my-1 h-5 shrink-0 tabular-nums"
+                                  title={`${open ? "Zwiń" : "Rozwiń"}: ${product.variants.length} ${variantsWord(product.variants.length)}`}
+                                  aria-label={`${open ? "Zwiń" : "Rozwiń"} warianty (${product.variants.length})`}
+                                  aria-expanded={open}
+                                  onClick={() => toggleExpanded(product.id)}
                                 >
-                                  <LayersIcon className="size-3.5" />
+                                  <LayersIcon data-icon="inline-start" />
                                   {product.variants.length}
-                                </span>
+                                  <ChevronRightIcon data-icon="inline-end" className={cn("transition-transform", open && "rotate-90")} />
+                                </Button>
                               )
                             }
                           />
@@ -478,23 +525,37 @@ export default function InventoryProducts(props: Props) {
                         <TableCell className={cn("text-right font-medium tabular-nums", product.stock <= 0 && "text-destructive")}>
                           {stockCell(product, product.name)}
                         </TableCell>
-                        <TableCell className="truncate pr-4">
+                        <TableCell className="truncate">
                           <StatusBadge status={product.status} label={statuses[product.status]} />
+                        </TableCell>
+                        <TableCell className="pr-4 text-right">
+                          <HistoryLink href={`/inventory/products/${product.id}/edit?tab=history`} name={product.name} />
                         </TableCell>
                       </TableRow>
                       {open &&
                         product.variants.map((variant) => (
                           <TableRow key={variant.id} className="bg-muted/30">
                             <TableCell className="pl-4" />
-                            <TableCell className="px-0" />
                             <TableCell>
-                              <ProductCell row={variant} href={`/inventory/variants/${variant.id}/edit`} marker="↳" variant />
+                              <ProductCell
+                                row={variant}
+                                href={`/inventory/variants/${variant.id}/edit`}
+                                image={
+                                  <span className="text-muted-foreground flex size-9 shrink-0 items-center justify-center" aria-hidden>
+                                    ↳
+                                  </span>
+                                }
+                                variant
+                              />
                             </TableCell>
                             <TableCell className="text-right tabular-nums">{priceCell(variant, `${product.name} - ${variant.name}`)}</TableCell>
                             <TableCell className={cn("text-right tabular-nums", variant.stock <= 0 && "text-destructive")}>
                               {stockCell(variant, `${product.name} - ${variant.name}`)}
                             </TableCell>
-                            <TableCell className="pr-4" />
+                            <TableCell />
+                            <TableCell className="pr-4 text-right">
+                              <HistoryLink href={`/inventory/variants/${variant.id}/edit?tab=history`} name={`${product.name} - ${variant.name}`} />
+                            </TableCell>
                           </TableRow>
                         ))}
                     </Fragment>
@@ -546,7 +607,7 @@ export default function InventoryProducts(props: Props) {
         </DropdownMenu>
         <ConfirmDelete
           title={`Usunąć ${selectedCount} ${productsWord(selectedCount)}?`}
-          description="Produkty z wariantami zostaną usunięte razem z wariantami. Produkty z towarem, historią magazynową lub zamówieniami zostaną pominięte - takie archiwizuj."
+          description="Produkty zostaną usunięte razem z wariantami, zdjęciami, stanem i historią. Zamówienia z tymi produktami zostają. Tej operacji nie można cofnąć."
           onConfirm={() => bulk({ operation: "delete" })}
           trigger={
             <Button variant="destructive">

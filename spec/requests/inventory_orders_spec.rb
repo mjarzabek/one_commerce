@@ -8,13 +8,14 @@ RSpec.describe "Produkty i zamówienia", type: :request do
 
   before { sign_in(user) }
 
-  it "nie usuwa produktu, który jest w zamówieniu (także bez rezerwacji)" do
+  it "usuwa produkt z zamówienia - pozycja zostaje z nazwą, SKU i ceną, bez powiązania z produktem" do
     Inventory.update_source_setting!(account, :manual, enabled: false)
-    Orders.create_from(account:, source: :manual, items: [ { product_id: mug.id, quantity: 1 } ])
+    order = Orders.create_from(account:, source: :manual, items: [ { product_id: mug.id, quantity: 1 } ])
 
     delete "/inventory/products/#{mug.id}"
 
-    expect(flash[:alert]).to include("Zarchiwizowany")
-    expect(Inventory.products(account).map(&:name)).to include("Kubek")
+    expect(Inventory.products(account)).to be_empty
+    item = order.items.reload.sole
+    expect([ item.product_id, item.name, item.sku, item.unit_price_cents ]).to eq([ nil, "Kubek", mug.sku, 10_000 ])
   end
 end

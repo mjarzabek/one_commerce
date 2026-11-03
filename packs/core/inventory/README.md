@@ -8,7 +8,17 @@ Jedno źródło prawdy o produktach, cenach i stanach dla wszystkich modułów. 
 Nazewnictwo: **magazyn** = fizyczne miejsce składowania, **stan** = liczba sztuk.
 
 - **Magazyny** - wspólne dla konta, tworzone w Ustawieniach → Magazyny.
-- **Zmiana stanu** - domyślnie stan to zwykłe pole na karcie produktu (zakładka „Stan”, `set_on_hand!`); historia
+- **Karta produktu** - zakładki: Karta produktu (dane, zdjęcia, opis + opisy dodatkowe 1-3, parametry, wymiary i waga),
+  Sprzedaż (ceny brutto z VAT i stan - zapisywane razem z danymi), Warianty, Historia (stany i ceny), Rezerwacje (gdy
+  któreś źródło rezerwuje), Kanały. Każda zmiana ceny trafia do `inventory_price_changes`.
+- **Warianty** - produkt z wariantami nie ma własnych cen ani stanu (`sellable?`): zakładka Sprzedaż znika, a zakładka
+  Warianty ma wspólny VAT i tabelę wariantów z wierszem „Razem” (wyliczonym, bez edycji). Nowy wariant dostaje
+  podpowiedź cen z ostatniego wariantu (pierwszy - z cen produktu).
+- **Status** - Szkic albo Aktywny.
+- **Usuwanie i duplikowanie** (menu „⋯” na karcie) - usunięcie zabiera produkt z wariantami, zdjęciami, stanem,
+  historią i rezerwacjami; pozycje zamówień zostają (mają własną nazwę, SKU i cenę) bez powiązania z produktem.
+  Duplikat to szkic z danymi, cenami, zdjęciami i wariantami - bez stanu i historii, z SKU „…-KOPIA” i pustym EAN.
+- **Zmiana stanu** - domyślnie stan to zwykłe pole na karcie produktu (zakładka „Sprzedaż”, `set_on_hand!`); historia
   zapisuje, z ilu na ile. Magazyn ze **ścisłą kontrolą** (`strict_control`, przełącznik w Ustawieniach → Magazyny)
   blokuje ręczne zmiany (`Inventory::StrictControl`) - stan zmieniają tam tylko dokumenty magazynowe (wkrótce) i zamówienia.
 - **Źródła zamówień** (Live / E-commerce / Ręczne, Ustawienia → Ogólne) - dla każdego wybierasz magazyn, z którego schodzi towar,
