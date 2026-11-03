@@ -1,4 +1,4 @@
-# [Nazwa] - Live · MultiChannel · Chat
+# OneCommerce - Live · MultiChannel · Chat
 
 Modularny monolit w Ruby on Rails 8.1 z frontendem Inertia.js + React + TypeScript.
 Jeden panel, trzy moduły sprzedawane osobno lub razem jako pakiet **ONE**.
