@@ -34,6 +34,21 @@ module Inventory
 
   module_function
 
+  PRODUCT_ID_START = 110_000_000
+
+  # ID produktów zaczynają się od PRODUCT_ID_START (nie zdradzają liczby produktów na platformie). schema.rb nie zapisuje
+  # stanu sekwencji, więc wywołują to: migracja, lib/tasks/product_ids.rake (po załadowaniu schematu) i db/seeds.rb.
+  # Nigdy nie cofa sekwencji.
+  def ensure_product_id_start!
+    return unless Product.table_exists?
+
+    Product.connection.execute(<<~SQL)
+      SELECT setval(pg_get_serial_sequence('inventory_products', 'id'), #{PRODUCT_ID_START}, false)
+      WHERE (SELECT COALESCE(MAX(id), 0) FROM inventory_products) < #{PRODUCT_ID_START}
+        AND (SELECT last_value FROM inventory_products_id_seq) < #{PRODUCT_ID_START}
+    SQL
+  end
+
   # --- Konfiguracja konta -------------------------------------------------------------------------
 
   # Magazyn główny, domyślny katalog (korzystający z tego magazynu) i domyślna grupa cenowa. Idempotentne.
@@ -251,6 +266,14 @@ module Inventory
       ensure_manual_changes!(item) unless delta.zero?
       change_on_hand!(item, delta, reason: :adjustment, reference:, user:) unless delta.zero?
       item
+    end
+  end
+
+  # Ustawia dostępne sztuki (edycja z listy): stan fizyczny = dostępne + zarezerwowane w chwili zapisu.
+  def set_available!(account, product_id, available, warehouse_id:, user: nil)
+    StockItem.transaction do
+      item = locked_items(sellable_product(account, product_id), [ warehouse_id ]).first
+      set_on_hand!(account, product_id, available + item.reserved, warehouse_id:, user:)
     end
   end
 

@@ -32,8 +32,8 @@ module Inventory
     ].freeze
 
     SORT_COLUMNS = {
-      "name" => "LOWER(inventory_products.name)", "sku" => "inventory_products.sku", "price" => "family_price.min",
-      "stock" => "family_stock.value", "created_at" => "inventory_products.created_at"
+      "id" => "inventory_products.id", "name" => "LOWER(inventory_products.name)", "sku" => "inventory_products.sku",
+      "price" => "family_price.min", "stock" => "family_stock.value", "created_at" => "inventory_products.created_at"
     }.freeze
     PER_PAGE = [ 25, 50, 100 ].freeze
 
@@ -89,7 +89,7 @@ module Inventory
       def base_scope
         scope = Product.main.where(account: @account, catalog: @catalog)
           .with_family_metrics(warehouse_ids: @warehouse_ids, price_group:)
-        query.present? ? scope.matching(:name, query) : scope
+        query.present? ? scope.search(query) : scope
       end
 
       def apply(scope, key, value)

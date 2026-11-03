@@ -57,6 +57,12 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
         expect(names(q: "kub")).to eq([ "Kubek" ])
       end
 
+      it "szuka po ID produktu i wariantu i sortuje po ID" do
+        expect(names(q: mug.id.to_s)).to eq([ "Kubek" ])
+        expect(names(q: small.id.to_s)).to eq([ "Sukienka Lena" ])
+        expect(names(sort: "id", dir: "desc")).to eq([ "Szal", "Kubek", "Sukienka Lena" ])
+      end
+
       it "filtruje osobno po SKU i EAN (także wariantów)" do
         expect(names(sku: "lena-s")).to eq([ "Sukienka Lena" ])
         expect(names(ean: "5902")).to eq([ "Kubek" ])
@@ -201,6 +207,77 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
         "reason" => "Zmiana ręczna", "before" => 0, "after" => 3, "quantity" => 3, "warehouse" => "Punkt Y", "user" => user.name
       )
       expect(inertia.props[:stock]["movements"].size).to eq(2)
+    end
+
+    it "pokazuje stan z rezerwacjami i dane do edycji ceny tylko dla produktów sprzedawalnych" do
+      mug = create(:product, account:, name: "Kubek", price_cents: 4_990, stock: 5)
+      dress = create(:main_product, account:, name: "Sukienka")
+      small = create(:variant, parent: dress, name: "S", price_cents: 19_900, stock: 4)
+      holder = create(:customer, account:)
+      main = Inventory.warehouses(account).first
+      Inventory.reserve!(account, mug.id, 2, holder:, warehouse_id: main.id)
+      Inventory.reserve!(account, small.id, 1, holder:, warehouse_id: main.id)
+
+      get "/inventory"
+
+      mug_row, dress_row = inertia.props[:products].sort_by { _1["name"] }
+      expect(mug_row).to include("stock" => 3, "reserved" => 2, "sellable" => true, "priceInput" => "49,90")
+      expect(dress_row).to include("stock" => 3, "reserved" => 1, "sellable" => false, "priceInput" => nil)
+      expect(dress_row["variants"].sole).to include("stock" => 3, "reserved" => 1, "sellable" => true, "priceInput" => "199,00")
+      expect(inertia.props[:warehouses].sole).to include("strict_control" => false)
+    end
+
+    it "ustawia dostępne sztuki z listy, zostawiając rezerwacje" do
+      product = create(:product, account:, stock: 5)
+      main = Inventory.warehouses(account).first
+      Inventory.reserve!(account, product.id, 2, holder: create(:customer, account:), warehouse_id: main.id)
+
+      patch "/inventory/products/#{product.id}/available", params: { warehouse_id: main.id, available: "10" },
+        headers: { "HTTP_REFERER" => "/inventory" }
+
+      expect(response).to redirect_to("/inventory")
+      item = Inventory.stock_levels(account, [ product.id ]).dig(product.id, main.id)
+      expect([ item.on_hand, item.reserved ]).to eq([ 12, 2 ])
+      expect(Inventory::Movement.where(product:).order(:id).last).to have_attributes(on_hand_before: 5, on_hand_after: 12, user_id: user.id)
+    end
+
+    it "zmienia i usuwa cenę z listy, odrzuca błędną kwotę i produkt z wariantami" do
+      product = create(:product, account:, price_cents: 10_000)
+      dress = create(:main_product, account:)
+      create(:variant, parent: dress)
+      referer = { "HTTP_REFERER" => "/inventory" }
+
+      patch "/inventory/products/#{product.id}/price", params: { price_group_id: retail.id, price: "129,90" }, headers: referer
+      expect(product.reload.price_cents_in(retail.id)).to eq(12_990)
+      expect(response).to redirect_to("/inventory")
+
+      patch "/inventory/products/#{product.id}/price", params: { price_group_id: retail.id, price: "abc" }, headers: referer
+      follow_redirect!
+      expect(inertia.props[:errors]["price"]).to include("Nieprawidłowa kwota")
+      expect(product.reload.price_cents_in(retail.id)).to eq(12_990)
+
+      patch "/inventory/products/#{product.id}/price", params: { price_group_id: retail.id, price: "" }, headers: referer
+      expect(product.reload.price_cents_in(retail.id)).to be_nil
+
+      patch "/inventory/products/#{dress.id}/price", params: { price_group_id: retail.id, price: "10" }, headers: referer
+      follow_redirect!
+      expect(inertia.props[:errors]["price"]).to include("wariantami")
+    end
+
+    it "nie zmienia z listy stanu w magazynie ze ścisłą kontrolą ani niepoprawnej liczby" do
+      product = create(:product, account:, stock: 2)
+      main = Inventory.warehouses(account).first
+      referer = { "HTTP_REFERER" => "/inventory" }
+
+      patch "/inventory/products/#{product.id}/available", params: { warehouse_id: main.id, available: "-1" }, headers: referer
+      follow_redirect!
+      expect(inertia.props[:errors]["available"]).to eq("Podaj stan (0 lub więcej)")
+
+      main.update!(strict_control: true)
+      patch "/inventory/products/#{product.id}/available", params: { warehouse_id: main.id, available: "5" }, headers: referer
+      follow_redirect!
+      expect(inertia.props[:errors]["available"]).to include("ścisłą kontrolę")
+      expect(Inventory.available(account, [ product.id ])).to eq(product.id => 2)
     end
 
     it "nie zapisuje niepoprawnego stanu" do

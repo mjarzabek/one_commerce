@@ -5,6 +5,8 @@ module Inventory
   # - Produkt wariantowy: produkt główny (może mieć własne SKU i EAN) z wariantami (`variants`).
   #   Ceny i stany mają warianty; stan produktu głównego to suma wariantów.
   # - Wariant: produkt z `parent` - ma własną nazwę wariantu (np. „M”), SKU, EAN, ceny i stany.
+  #
+  # ID produktów zaczynają się od 110 000 000 (migracja StartInventoryProductIdsAt110000000).
   class Product < ApplicationRecord
     TAX_RATES = [ 23, 8, 5, 0 ].freeze
     STATUS_LABELS = { "active" => "Aktywny", "draft" => "Szkic", "archived" => "Zarchiwizowany" }.freeze
@@ -55,6 +57,13 @@ module Inventory
       raise ArgumentError, "Nieobsługiwana kolumna: #{column}" unless MATCHABLE.include?(column.to_s)
 
       family_of(unscoped.where(arel_table[column].matches("%#{sanitize_sql_like(text)}%")))
+    end
+    # Wyszukiwarka listy: nazwa zawiera tekst albo ID zaczyna się od wpisanych cyfr.
+    scope :search, ->(text) do
+      matches = unscoped.where(arel_table[:name].matches("%#{sanitize_sql_like(text)}%"))
+      digits = text.gsub(/[[:space:]]/, "")
+      matches = matches.or(unscoped.where("inventory_products.id::text LIKE ?", "#{digits}%")) if digits.match?(/\A\d{1,19}\z/)
+      family_of(matches)
     end
     scope :with_variants, -> { where(id: unscoped.where.not(parent_id: nil).select(:parent_id)) }
     scope :without_variants, -> { where.not(id: unscoped.where.not(parent_id: nil).select(:parent_id)) }

@@ -3,7 +3,7 @@ module Inventory
   class ProductsController < BaseController
     STATUS_LABELS = Product::STATUS_LABELS
 
-    before_action :set_product, only: %i[edit update destroy stock]
+    before_action :set_product, only: %i[edit update destroy stock price available]
 
     # Lista produktów katalogu: wyszukiwanie, filtry ze schematu ProductSearch::FILTERS, sortowanie, strony.
     def index
@@ -12,6 +12,11 @@ module Inventory
       products = search.records
       variant_stock = Inventory.available(Current.account, products.flat_map { _1.variants.map(&:id) }, warehouse_id: warehouse&.id)
       price_label = ->(cents) { cents.compact.uniq.sort.values_at(0, -1).compact.uniq.map { Inventory.format_price(_1, group.currency) }.join(" - ").presence }
+      # Rezerwacje w tych samych magazynach co kolumna „Stan” (wybrany albo wszystkie z katalogu).
+      reserved = StockItem.where(account: Current.account, product_id: products.flat_map { [ _1.id, *_1.variants.map(&:id) ] },
+        warehouse_id: warehouse ? warehouse.id : warehouses.map(&:id)).group(:product_id).sum(:reserved)
+      # Cena do pola edycji z listy - tylko produkty sprzedawalne (prosty, wariant).
+      price_input = ->(product) { Inventory.format_money_input(product.price_cents_in(group.id)) }
 
       render inertia: "core/inventory/products/index", props: {
         products: products.map do |product|
@@ -19,10 +24,13 @@ module Inventory
           own_prices = variants.any? ? variants.map { _1.price_cents_in(group.id) } : [ product.price_cents_in(group.id) ]
           {
             id: product.id, name: product.name, sku: product.sku, ean: product.ean, status: product.status,
-            price: price_label.(own_prices), stock: product.stock_value.to_i,
+            price: price_label.(own_prices), stock: product.stock_value.to_i, sellable: variants.none?,
+            reserved: variants.any? ? variants.sum { reserved.fetch(_1.id, 0) } : reserved.fetch(product.id, 0),
+            priceInput: variants.any? ? nil : price_input.(product),
             variants: variants.map do |variant|
               { id: variant.id, name: variant.name, sku: variant.sku, ean: variant.ean,
-                price: price_label.([ variant.price_cents_in(group.id) ]), stock: variant_stock.fetch(variant.id) }
+                price: price_label.([ variant.price_cents_in(group.id) ]), stock: variant_stock.fetch(variant.id), sellable: true,
+                reserved: reserved.fetch(variant.id, 0), priceInput: price_input.(variant) }
             end
           }
         end,
@@ -35,7 +43,7 @@ module Inventory
                 sort: search.sort, dir: search.direction },
         catalogs: catalogs_json,
         catalog: { id: current_catalog.id, name: current_catalog.name },
-        warehouses: warehouses.map { { id: _1.id, name: _1.name } },
+        warehouses: warehouses.map { { id: _1.id, name: _1.name, strict_control: _1.strict_control } },
         statuses: STATUS_LABELS,
         priceGroups: groups.map { { id: _1.id, name: _1.name, currency: _1.currency } }
       }
@@ -138,6 +146,32 @@ module Inventory
       stock_errors(warehouse_id => e.record.errors.messages.values.flatten.to_sentence.upcase_first)
     rescue Inventory::StrictControl, Inventory::NotSellable => e
       stock_errors(warehouse_id => e.message)
+    end
+
+    # PATCH /inventory/products/:id/price  price_group_id=…&price=199,90 - cena w jednej grupie (edycja z listy).
+    # Pusta cena usuwa cenę z grupy.
+    def price
+      group = price_groups(@product.catalog).find(params[:price_group_id])
+      value = params[:price].to_s.strip
+      cents = Inventory.parse_money(value) if value.present?
+      error = "Produkt z wariantami nie ma własnej ceny - zmień ceny wariantów" unless @product.sellable?
+      error ||= "Nieprawidłowa kwota - wpisz np. 199,99" if value.present? && cents.nil?
+      return redirect_back_or_to(inventory_root_path, inertia: { errors: { price: error } }) if error
+
+      Inventory.set_price!(Current.account, @product.id, group, cents)
+      redirect_back_or_to inventory_root_path, notice: "Zapisano cenę „#{@product.display_name}”."
+    end
+
+    # PATCH /inventory/products/:id/available  warehouse_id=…&available=5 - dostępne sztuki w magazynie (edycja z listy).
+    def available
+      warehouse = Inventory.warehouses(Current.account, catalog: @product.catalog).find(params[:warehouse_id])
+      available = parse_on_hand(params[:available])
+      return redirect_back_or_to(inventory_root_path, inertia: { errors: { available: "Podaj stan (0 lub więcej)" } }) unless available
+
+      Inventory.set_available!(Current.account, @product.id, available, warehouse_id: warehouse.id, user: Current.user)
+      redirect_back_or_to inventory_root_path, notice: "Zapisano stan „#{@product.display_name}”."
+    rescue Inventory::StrictControl, Inventory::NotSellable => e
+      redirect_back_or_to inventory_root_path, inertia: { errors: { available: e.message } }
     end
 
     private

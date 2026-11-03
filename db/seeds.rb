@@ -8,6 +8,8 @@
 #
 # Konta ONE i Live dostają katalog z wariantami, stany magazynowe i kilka zamówień.
 
+Inventory.ensure_product_id_start!
+
 def demo_account(email, account_name:, user_name:)
   existing = User.find_by(email_address: email)
   return Accounts.default_account_for(existing) if existing
