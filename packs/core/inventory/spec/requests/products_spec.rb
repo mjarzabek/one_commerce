@@ -338,8 +338,9 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
     it "duplikuje produkt jako szkic z cenami, zdjęciami i wariantami - bez stanu, z nowym SKU" do
       main = create(:main_product, account:, name: "Sukienka", sku: "LENA", ean: "590", description: "Opis",
         parameters: [ { name: "Materiał", value: "len" } ], weight_kg: "0,4")
-      create(:variant, parent: main, name: "M", sku: "LENA-M", price_cents: 12_900, stock: 2)
+      source_variant = create(:variant, parent: main, name: "M", sku: "LENA-M", price_cents: 12_900, stock: 2, tax_rate: 8, description: "Opis M")
       main.images.create!(file: fixture_file_upload("product.png", "image/png"))
+      source_variant.images.create!(file: fixture_file_upload("product.png", "image/png"))
 
       post "/inventory/products/#{main.id}/duplicate"
       post "/inventory/products/#{main.id}/duplicate"
@@ -352,6 +353,7 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
       expect(copy.images.sole.file.download).to eq(main.images.sole.file.download)
       variant = copy.variants.sole
       expect([ variant.name, variant.sku, variant.price_cents_in(retail.id) ]).to eq([ "M", "LENA-M-KOPIA", 12_900 ])
+      expect([ variant.tax_rate, variant.description, variant.images.size ]).to eq([ 8, "Opis M", 1 ])
       expect(Inventory.available(account, [ variant.id ])).to eq(variant.id => 0)
     end
 
@@ -522,8 +524,57 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
         price_inputs: { retail.id => "199,00" } } }, as: :json
 
       variant = main.variants.sole
-      expect(response).to redirect_to("/inventory/variants/#{variant.id}/edit")
+      expect(response).to redirect_to("/inventory/variants/#{variant.id}/edit?tab=sales")
       expect([ variant.sku, variant.ean, variant.price_cents_in(retail.id) ]).to eq([ "LENA-M", "222", 19_900 ])
+      expect([ variant.tax_rate, variant.description, variant.effective_tax_rate ]).to eq([ nil, nil, 23 ])
+    end
+
+    it "zapisuje własne pola wariantu, a puste dziedziczy z produktu głównego" do
+      main.update!(tax_rate: 23, description: "Opis sukienki", description_extra_1: "Skład: len", weight_grams: 400,
+        parameters: [ { name: "Materiał", value: "len" }, { name: "Kolor", value: "beżowy" } ])
+      variant = create(:variant, parent: main, name: "M", sku: "LENA-M")
+
+      patch "/inventory/variants/#{variant.id}", params: { variant: {
+        tax_rate: "8", description: "Opis wariantu", description_extra_1: nil, weight_kg: "", height_cm: "12,5",
+        status: "draft", parameters: [ { name: "kolor", value: "czarny" }, { name: "Rozmiar", value: "M" } ]
+      } }, as: :json
+
+      variant.reload
+      expect(variant).to have_attributes(tax_rate: 8, description: "Opis wariantu", description_extra_1: nil, weight_grams: nil,
+        height_mm: 125, status: "draft")
+      expect(variant.effective(:description_extra_1)).to eq("Skład: len")
+      expect(variant.effective(:weight_grams)).to eq(400)
+      expect(variant.effective_parameters).to eq([ { "name" => "Materiał", "value" => "len" }, { "name" => "kolor", "value" => "czarny" },
+                                                   { "name" => "Rozmiar", "value" => "M" } ])
+      expect(Inventory.find_products(account, ids: [ variant.id ]).sole.tax_rate).to eq(8)
+
+      get "/inventory/variants/#{variant.id}/edit"
+      expect(inertia.props[:variant]).to include("tax_rate" => "8", "description" => "Opis wariantu", "description_extra_1" => nil,
+        "weight_kg" => "", "height_cm" => "12,5")
+      expect(inertia.props[:inherited]).to include("tax_rate" => "23", "description_extra_1" => "Skład: len", "weight_kg" => "0,4")
+    end
+
+    it "przywraca dziedziczenie VAT po wybraniu „jak produkt główny”" do
+      variant = create(:variant, parent: main, tax_rate: 8)
+
+      patch "/inventory/variants/#{variant.id}", params: { variant: { tax_rate: "" } }, as: :json
+
+      expect(variant.reload.tax_rate).to be_nil
+      expect(variant.effective_tax_rate).to eq(23)
+    end
+
+    it "dodaje zdjęcia wariantu i pokazuje po nich zdjęcia produktu głównego" do
+      main.images.create!(file: fixture_file_upload("product.png", "image/png"))
+      variant = create(:variant, parent: main)
+
+      post "/inventory/products/#{variant.id}/images", params: { images: [ fixture_file_upload("product.png", "image/png") ] }
+
+      expect(response).to redirect_to("/inventory/variants/#{variant.id}/edit")
+      expect(variant.reload.images.size).to eq(1)
+      expect(variant.effective_images.map(&:product_id)).to eq([ variant.id, main.id ])
+      get "/inventory/variants/#{variant.id}/edit"
+      expect(inertia.props[:images].size).to eq(1)
+      expect(inertia.props[:inherited]["images"].size).to eq(1)
     end
 
     it "pokazuje kartę produktu głównego z wariantami i stanem wariant × magazyn" do
@@ -568,7 +619,7 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
       expect(Inventory.available(account, [ variant.id ])).to eq(variant.id => 4)
       get "/inventory/variants/#{variant.id}/edit"
       expect(inertia.props[:activity]["movements"].sole).to include("after" => 4)
-      expect(inertia.props[:parent]).to include("taxRate" => "23")
+      expect(inertia.props[:inherited]).to include("tax_rate" => "23")
     end
 
     it "edytuje wariant i pokazuje okruszki do produktu głównego" do

@@ -1,5 +1,5 @@
 import { usePage } from "@inertiajs/react"
-import { BookCopyIcon, BoxesIcon, SettingsIcon, ShirtIcon, TagsIcon, WarehouseIcon } from "lucide-react"
+import { BookCopyIcon, BoxesIcon, FolderTreeIcon, SettingsIcon, ShirtIcon, TagsIcon, WarehouseIcon } from "lucide-react"
 
 import { TabNav } from "@/components/tab-nav"
 
@@ -13,6 +13,7 @@ const SETTINGS_TABS = [
   { value: "catalogs", label: "Katalogi", icon: BookCopyIcon, href: "/inventory/settings/catalogs" },
   { value: "warehouses", label: "Magazyny", icon: WarehouseIcon, href: "/inventory/settings/warehouses" },
   { value: "prices", label: "Ceny", icon: TagsIcon, href: "/inventory/settings/prices" },
+  { value: "categories", label: "Kategorie", icon: FolderTreeIcon, href: "/inventory/settings/categories" },
 ]
 
 const activeTab = (url: string, tabs: { value: string; href: string }[]) =>
@@ -24,7 +25,7 @@ export function InventoryTabs({ className }: { className?: string }) {
   return <TabNav label="Lista produktów" items={LIST_TABS} value={activeTab(url, LIST_TABS.slice(1)) ?? "products"} className={className} />
 }
 
-// Zakładki ustawień produktów: Ogólne | Katalogi | Magazyny | Ceny.
+// Zakładki ustawień produktów: Ogólne | Katalogi | Magazyny | Ceny | Kategorie.
 export function InventorySettingsTabs({ className }: { className?: string }) {
   const { url } = usePage()
   return <TabNav label="Ustawienia produktów" items={SETTINGS_TABS} value={activeTab(url, SETTINGS_TABS) ?? "general"} className={className} />

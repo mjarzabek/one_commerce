@@ -12,8 +12,9 @@ const ACCEPT = "image/jpeg,image/png,image/webp,image/gif"
 const LIMIT = 16
 
 // Zdjęcia produktu: dodawanie (przycisk albo przeciągnięcie), kolejność (pierwsze = główne) i usuwanie.
-// Zapisują się od razu - poza paskiem zapisu formularza.
-export function ProductImagesCard({ productId, images }: { productId: number | null; images: ProductImage[] }) {
+// Zapisują się od razu - poza paskiem zapisu formularza. Wariant ma własne zdjęcia, a po nich zdjęcia produktu głównego
+// (`inherited`, tylko podgląd) - zdjęciem głównym wariantu jest jego pierwsze własne zdjęcie albo zdjęcie produktu.
+export function ProductImagesCard({ productId, images, inherited }: { productId: number | null; images: ProductImage[]; inherited?: ProductImage[] }) {
   const input = useRef<HTMLInputElement>(null)
   const [processing, setProcessing] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -31,7 +32,7 @@ export function ProductImagesCard({ productId, images }: { productId: number | n
       <Card>
         <CardHeader>
           <CardTitle>Zdjęcia</CardTitle>
-          <CardDescription>Zdjęcia dodasz po zapisaniu produktu.</CardDescription>
+          <CardDescription>{inherited ? "Własne zdjęcia wariantu dodasz po jego zapisaniu." : "Zdjęcia dodasz po zapisaniu produktu."}</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -41,7 +42,6 @@ export function ProductImagesCard({ productId, images }: { productId: number | n
     <Card>
       <CardHeader>
         <CardTitle>Zdjęcia</CardTitle>
-        <CardDescription>Pierwsze zdjęcie jest główne. Zmiany zapisują się od razu. JPG, PNG, WEBP lub GIF, do 10 MB, najwyżej {LIMIT}.</CardDescription>
         <CardAction>
           <Button variant="outline" size="sm" disabled={processing || images.length >= LIMIT} onClick={() => input.current?.click()}>
             <ImagePlusIcon />
@@ -118,12 +118,24 @@ export function ProductImagesCard({ productId, images }: { productId: number | n
             <button
               type="button"
               className="text-muted-foreground hover:text-foreground hover:border-foreground/30 flex aspect-square flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed text-xs transition-colors"
+              title={`JPG, PNG, WEBP lub GIF, do 10 MB, najwyżej ${LIMIT}`}
               onClick={() => input.current?.click()}
             >
               {images.length === 0 ? <ImageIcon className="size-5" /> : <ImagePlusIcon className="size-5" />}
               {images.length === 0 ? "Dodaj lub przeciągnij zdjęcia" : "Dodaj"}
             </button>
           )}
+          {inherited?.map((image, index) => (
+            <figure key={`parent-${image.id}`} className="bg-muted relative aspect-square overflow-hidden rounded-lg ring-1 ring-foreground/10">
+              <img src={image.url} alt={image.name} className="size-full object-cover opacity-70" loading="lazy" />
+              {images.length === 0 && index === 0 && (
+                <span className="bg-background/90 absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium shadow-sm">
+                  <StarIcon className="size-3 fill-amber-400 text-amber-400" />
+                  Główne
+                </span>
+              )}
+            </figure>
+          ))}
         </div>
       </CardContent>
     </Card>

@@ -34,6 +34,7 @@ FactoryBot.define do
       account { parent.account }
       catalog { parent.catalog }
       sequence(:name) { |n| "Wariant #{n}" }
+      tax_rate { nil } # dziedziczy VAT produktu głównego
     end
   end
 end

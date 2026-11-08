@@ -4,6 +4,10 @@ module Inventory
   class BaseController < InertiaController
     REASON_LABELS = { "receipt" => "Przyjęcie", "adjustment" => "Zmiana ręczna", "sale" => "Sprzedaż", "return" => "Zwrot" }.freeze
     HISTORY_LIMIT = 50
+    DESCRIPTIONS = %i[description description_extra_1 description_extra_2 description_extra_3].freeze
+    # Pola karty wspólne dla produktu i wariantu (dane, producent, kategoria, treść, VAT, wymiary, parametry, ceny).
+    CARD_PARAMS = [ :name, :sku, :ean, :manufacturer, :category_id, *DESCRIPTIONS, :status, :tax_rate, *Product::DIMENSIONS.keys,
+                    price_inputs: {}, parameters: [ [ :name, :value ] ] ].freeze
 
     requires_orders_panel
     before_action { Inventory.ensure_setup!(Current.account) }
@@ -43,6 +47,47 @@ module Inventory
       # Ceny z formularza tylko dla grup, z których korzysta katalog produktu.
       def catalog_price_inputs(inputs, catalog)
         inputs.to_h.slice(*price_groups(catalog).map { _1.id.to_s })
+      end
+
+      # Pola karty produktu albo wariantu. U wariantu puste pole (null) = wartość z produktu głównego - pola z
+      # dziedziczeniem przychodzą jako null, a wartości produktu głównego są w `inherited_json`.
+      def card_json(product)
+        own = ->(value) { product.variant? ? value&.to_s : value.to_s }
+        {
+          id: product.id, catalog_id: product.catalog_id, name: product.name.to_s, sku: product.sku.to_s, ean: product.ean.to_s,
+          status: product.status, parameters: product.parameters,
+          manufacturer: product.manufacturer.to_s, category_id: product.category_id.to_s,
+          **DESCRIPTIONS.to_h { [ _1, own.(product[_1]) ] },
+          tax_rate: product.tax_rate&.to_i.to_s,
+          **Product::DIMENSIONS.keys.to_h { [ _1, product.public_send(_1).to_s ] },
+          prices: price_inputs_json(product), hasVariants: product.persisted? && product.with_variants?
+        }
+      end
+
+      # Wartości produktu głównego, które wariant dziedziczy (pokazywane jako podpowiedzi i podglądy na karcie wariantu).
+      def inherited_json(parent)
+        {
+          tax_rate: parent.tax_rate.to_i.to_s, parameters: parent.parameters,
+          manufacturer: parent.manufacturer.to_s, category_id: parent.category_id.to_s,
+          **DESCRIPTIONS.to_h { [ _1, parent[_1].to_s ] },
+          **Product::DIMENSIONS.keys.to_h { [ _1, parent.public_send(_1).to_s ] },
+          images: images_json(parent)
+        }
+      end
+
+      # Kategorie do wyboru w karcie produktu: ogólne i katalogu `catalog` (bez - wszystkie, z `catalog_id`, żeby nowy
+      # produkt mógł zmienić katalog). `path` to pełna ścieżka „Odzież › Sukienki”.
+      def categories_json(catalog = nil)
+        all = Category.where(account: Current.account).to_a
+        index = all.index_by(&:id)
+        all.select { catalog.nil? || _1.catalog_id.nil? || _1.catalog_id == catalog.id }
+          .map { { id: _1.id, path: _1.path(index), catalog_id: _1.catalog_id } }.sort_by { _1[:path].downcase }
+      end
+
+      def images_json(product)
+        product.images.includes(file_attachment: :blob).map do |image|
+          { id: image.id, url: rails_blob_path(image.file, disposition: "inline"), name: image.file.filename.to_s }
+        end
       end
 
       # Stan produktu sprzedawalnego w magazynach katalogu.

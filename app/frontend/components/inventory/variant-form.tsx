@@ -1,83 +1,58 @@
-import { useForm } from "@inertiajs/react"
-
-import { errorText, type FormErrors, type PriceGroup, type PriceInputs, type StockInputs } from "@/components/inventory/types"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import { PricesPanel } from "@/components/inventory/prices-panel"
+import { ProductImagesCard } from "@/components/inventory/product-images"
+import {
+  ProductBasicsCard,
+  ProductDescriptionsCard,
+  ProductDimensionsCard,
+  ProductParametersCard,
+  useProductForm,
+  type CategoryOption,
+  type InheritedFields,
+  type ProductFormData,
+  type ProductFormState,
+} from "@/components/inventory/product-form"
+import type { CatalogOption, PriceGroup, ProductImage, StockInputs } from "@/components/inventory/types"
 
 export type VariantFormProps = {
-  variant: { id: number | null; name: string; sku: string; ean: string; prices: PriceInputs }
-  parent: { id: number; name: string; sku: string | null; taxRate: string }
-  catalog: { id: number; name: string }
+  variant: ProductFormData
+  parent: { id: number; name: string; sku: string | null }
+  // Wartości produktu głównego, które wariant dziedziczy, dopóki nie ustawi własnych.
+  inherited: InheritedFields
+  catalog: CatalogOption
+  categories: CategoryOption[]
   priceGroups: PriceGroup[]
+  statuses: Record<string, string>
+  taxRates: string[]
 }
 
-// Formularz wariantu: dane, ceny i stan (po dodaniu) - jeden zapis; wraca na bieżącą zakładkę.
+// Formularz wariantu - ten sam co produktu (dane, treści, VAT, ceny, stan), zapisywany pod adresem wariantu.
 export function useVariantForm({ variant, parent }: Pick<VariantFormProps, "variant" | "parent">, stock: StockInputs = {}) {
-  const form = useForm({ ...variant, stock })
-
-  const save = (tab: string, defaultTab = "variant") => {
-    form.transform(({ id: _id, prices, stock, ...data }) => ({
-      variant: { ...data, price_inputs: prices },
-      ...(Object.keys(stock).length === 0 ? {} : { stock }),
-    }))
-    const query = tab === defaultTab ? "" : `?tab=${tab}`
-    const options = { preserveScroll: true, preserveState: "errors" as const }
-    if (variant.id) form.patch(`/inventory/variants/${variant.id}${query}`, options)
-    else form.post(`/inventory/products/${parent.id}/variants${query}`, options)
-  }
-
-  const errors = form.errors as FormErrors
-
-  return { form, save, errors, hasErrors: Object.values(errors).some(Boolean) }
+  return useProductForm(variant, stock, { kind: "variant", parentId: parent.id })
 }
 
-export type VariantFormState = ReturnType<typeof useVariantForm>
-
-// Dane wariantu: nazwa wariantu (np. „M”, „czarny”), SKU, EAN.
-export function VariantGeneralFields({ state, variant, parent }: { state: VariantFormState } & Pick<VariantFormProps, "variant" | "parent">) {
-  const { form, errors } = state
-  const error = (key: string) => errorText(errors, key)
-
+// Zakładka „Karta wariantu”: dane, zdjęcia (własne + produktu), opisy, parametry i wymiary z dziedziczeniem.
+export function VariantContent({ state, images = [], ...props }: { state: ProductFormState; images?: ProductImage[] } & VariantFormProps) {
+  const { variant, parent, inherited } = props
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Dane wariantu</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <FieldGroup>
-          <FieldError>{error("base")}</FieldError>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field data-invalid={!!error("name")}>
-              <FieldLabel htmlFor="name">Wariant</FieldLabel>
-              <Input
-                id="name"
-                placeholder="np. M, czarny"
-                value={form.data.name}
-                onChange={(e) => form.setData("name", e.target.value)}
-                aria-invalid={!!error("name")}
-                autoFocus={!variant.id}
-              />
-              <FieldError>{error("name")}</FieldError>
-            </Field>
-            <Field data-invalid={!!error("sku")}>
-              <FieldLabel htmlFor="sku">SKU</FieldLabel>
-              <Input
-                id="sku"
-                placeholder={parent.sku ? `np. ${parent.sku}-M` : undefined}
-                value={form.data.sku}
-                onChange={(e) => form.setData("sku", e.target.value)}
-                aria-invalid={!!error("sku")}
-              />
-              <FieldError>{error("sku")}</FieldError>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="ean">EAN</FieldLabel>
-              <Input id="ean" value={form.data.ean} onChange={(e) => form.setData("ean", e.target.value)} />
-            </Field>
-          </div>
-        </FieldGroup>
-      </CardContent>
-    </Card>
+    <>
+      <ProductBasicsCard state={state} product={variant} statuses={props.statuses} categories={props.categories} parent={parent} inherited={inherited} />
+      <ProductImagesCard productId={variant.id} images={images} inherited={inherited.images} />
+      <ProductDescriptionsCard state={state} inherited={inherited} />
+      <ProductParametersCard state={state} inherited={inherited} />
+      <ProductDimensionsCard state={state} inherited={inherited} />
+    </>
+  )
+}
+
+// Ceny i VAT wariantu (VAT domyślnie jak produkt główny).
+export function VariantPrices({ state, priceGroups, taxRates, inherited }: { state: ProductFormState } & Pick<VariantFormProps, "priceGroups" | "taxRates" | "inherited">) {
+  return (
+    <PricesPanel
+      priceGroups={priceGroups}
+      value={state.form.data.prices}
+      onChange={(prices) => state.form.setData("prices", prices)}
+      errors={state.errors}
+      taxRate={{ value: state.form.data.tax_rate, options: taxRates, onChange: (value) => state.form.setData("tax_rate", value), inherited: inherited.tax_rate }}
+    />
   )
 }

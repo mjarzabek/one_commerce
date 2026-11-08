@@ -40,7 +40,7 @@ import { RowActions } from "@/components/row-actions"
 import { SaveBar } from "@/components/save-bar"
 import { TabbedCard } from "@/components/tabbed-card"
 import { buttonVariants } from "@/components/ui/button"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useTabParam } from "@/hooks/use-tab-param"
 import { cn } from "@/lib/utils"
@@ -69,8 +69,8 @@ const TABS = ["product", "sales", "variants", "history", "reservations", "channe
 type Tab = (typeof TABS)[number]
 
 // Karta produktu: treść (Karta produktu), Sprzedaż (ceny, VAT, stan - tylko produkt prosty), Warianty, Historia stanów
-// i cen, Rezerwacje (gdy włączone) i Kanały. Produkt z wariantami nie ma własnych cen ani stanu - VAT ustawia się
-// w zakładce Warianty. Dane, ceny i stan zapisuje jeden pasek; zdjęcia zapisują się od razu.
+// i cen, Rezerwacje (gdy włączone) i Kanały. Produkt z wariantami nie ma własnych cen ani stanu - jego VAT (domyślny
+// dla wariantów) ustawia się w zakładce Warianty. Dane, ceny i stan zapisuje jeden pasek; zdjęcia zapisują się od razu.
 export default function InventoryProductEdit({ stock, variants = [], warehouses = [], images, activity, reservationsEnabled, summary, ...props }: Props) {
   const { product, catalog } = props
   const state = useProductForm(product, stockInputs(stock))
@@ -156,8 +156,8 @@ export default function InventoryProductEdit({ stock, variants = [], warehouses 
               <div className="flex max-w-md flex-col gap-1">
                 <p className="font-medium">Ten produkt nie ma wariantów</p>
                 <p className="text-muted-foreground text-sm">
-                  Sprzedajesz go w kilku rozmiarach lub kolorach? Każdy wariant dostanie własne SKU, EAN, ceny i stan, a opis, zdjęcia i VAT zostają na
-                  produkcie.
+                  Sprzedajesz go w kilku rozmiarach lub kolorach? Każdy wariant to pełny produkt z własnym SKU, EAN, cenami i stanem. Opisy, zdjęcia,
+                  parametry, wymiary i VAT dziedziczy z tego produktu - każde z nich możesz ustawić inaczej na wariancie.
                   {summary.available > 0 && " Najpierw wyzeruj stan produktu w zakładce Sprzedaż."}
                 </p>
               </div>
@@ -173,11 +173,12 @@ export default function InventoryProductEdit({ stock, variants = [], warehouses 
           <>
             <Card>
               <CardHeader>
-                <CardTitle>VAT</CardTitle>
-                <CardDescription>Stawka wspólna dla wszystkich wariantów. Ceny i stany ustawiasz na wariantach.</CardDescription>
+                <CardTitle>Domyślny VAT wariantów</CardTitle>
               </CardHeader>
               <CardContent>
-                <TaxRateField taxRate={taxRate} errors={state.errors} />
+                <div className="sm:max-w-44">
+                  <TaxRateField taxRate={taxRate} errors={state.errors} />
+                </div>
               </CardContent>
             </Card>
             <VariantsTable productId={product.id!} variants={variants} warehouses={warehouses} priceGroup={summary.priceGroup} priceRange={summary.price} />
@@ -234,7 +235,6 @@ function VariantsTable({
     <Card className="gap-0 pb-0">
       <CardHeader className="pb-4">
         <CardTitle>Warianty</CardTitle>
-        <CardDescription>Każdy wariant ma własne SKU, EAN, ceny i stan. Kliknij wariant, żeby go edytować.</CardDescription>
         <CardAction>
           <Link href={`/inventory/products/${productId}/variants/new`} className={buttonVariants({ size: "sm" })}>
             <PlusIcon />

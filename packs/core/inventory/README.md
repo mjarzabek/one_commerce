@@ -3,7 +3,7 @@
 Jedno źródło prawdy o produktach, cenach i stanach dla wszystkich modułów. W panelu: sekcja „Produkty”
 (`/inventory`) z dwiema częściami:
 - **Lista produktów** - zakładki Produkty | Zestawy (zestawy: wkrótce) oraz karty produktu i wariantu (z okruszkami);
-- **Ustawienia** (`/inventory/settings`) - zakładki Ogólne | Katalogi | Magazyny | Ceny (źródła zamówień i rezerwacje).
+- **Ustawienia** (`/inventory/settings`) - zakładki Ogólne | Katalogi | Magazyny | Ceny | Kategorie (źródła zamówień i rezerwacje).
 
 Nazewnictwo: **magazyn** = fizyczne miejsce składowania, **stan** = liczba sztuk.
 
@@ -12,9 +12,20 @@ Nazewnictwo: **magazyn** = fizyczne miejsce składowania, **stan** = liczba sztu
   Sprzedaż (ceny brutto z VAT i stan - zapisywane razem z danymi), Warianty, Historia (stany i ceny), Rezerwacje (gdy
   któreś źródło rezerwuje), Kanały. Każda zmiana ceny trafia do `inventory_price_changes`.
 - **Warianty** - produkt z wariantami nie ma własnych cen ani stanu (`sellable?`): zakładka Sprzedaż znika, a zakładka
-  Warianty ma wspólny VAT i tabelę wariantów z wierszem „Razem” (wyliczonym, bez edycji). Nowy wariant dostaje
+  Warianty ma domyślny VAT wariantów i tabelę wariantów z wierszem „Razem” (wyliczonym, bez edycji). Nowy wariant dostaje
   podpowiedź cen z ostatniego wariantu (pierwszy - z cen produktu).
+- **Karta wariantu** - wariant to pełnoprawny produkt z tymi samymi zakładkami i polami co produkt (dane, status, zdjęcia,
+  opisy, parametry, wymiary, VAT, ceny, stan, historia, rezerwacje, kanały). Dziedziczenie z produktu głównego:
+  VAT, opisy, wymiary i waga - puste pole (NULL) = wartość produktu (`Product#effective`); parametry - produktu +
+  własne, własny o tej samej nazwie nadpisuje (`effective_parameters`); zdjęcia - własne, a po nich produktu
+  (`effective_images`). Dzięki temu warianty importowane ze sklepów mogą mieć własne opisy, zdjęcia, VAT i parametry.
 - **Status** - Szkic albo Aktywny.
+- **Producent** - zwykły tekst na karcie produktu (wariant bez własnego dziedziczy producenta produktu głównego).
+- **Kategorie** (Ustawienia → Kategorie) - drzewo (kategoria nadrzędna); kategoria **ogólna** (bez katalogu, do wyboru
+  w każdym katalogu) albo **katalogu**. Nadrzędna musi być ogólna albo z tego samego katalogu. Tworzone ręcznie albo
+  importowane z marketplace'ów (`Inventory.import_categories!` - `source` np. „allegro” + `external_id`; ponowny import
+  aktualizuje nazwy i drzewo). Produkt ma jedną kategorię (wybór z wyszukiwaniem), wariant dziedziczy ją z produktu.
+  Usunięcie kategorii zostawia produkty bez kategorii; kategorii z podkategoriami nie można usunąć.
 - **Usuwanie i duplikowanie** (menu „⋯” na karcie) - usunięcie zabiera produkt z wariantami, zdjęciami, stanem,
   historią i rezerwacjami; pozycje zamówień zostają (mają własną nazwę, SKU i cenę) bez powiązania z produktem.
   Duplikat to szkic z danymi, cenami, zdjęciami i wariantami - bez stanu i historii, z SKU „…-KOPIA” i pustym EAN.
@@ -28,7 +39,7 @@ Nazewnictwo: **magazyn** = fizyczne miejsce składowania, **stan** = liczba sztu
   SKU jest unikalne w katalogu. Nie można odznaczyć magazynu, w którym produkty katalogu mają towar.
 - **Produkt prosty** - SKU, EAN, ceny i stan w magazynach.
 - **Produkt wariantowy** - produkt główny (opcjonalnie własne SKU i EAN) z wariantami (`parent_id`);
-  każdy wariant ma SKU, EAN, ceny i stan. Stan produktu głównego = suma wariantów.
+  każdy wariant ma SKU, EAN, ceny i stan, a treści i VAT dziedziczy (patrz Karta wariantu). Stan produktu głównego = suma wariantów.
 - **Stan łączny** = suma magazynów katalogu produktu. Na liście produktów kolumna „Stan” pokazuje stan łączny
   albo stan wybranego magazynu.
 - **Grupy cenowe katalogu** - katalog wybiera, z których grup cenowych korzysta; produkty mają ceny w tych grupach.

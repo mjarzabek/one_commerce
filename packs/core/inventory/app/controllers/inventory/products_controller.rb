@@ -252,8 +252,7 @@ module Inventory
       end
 
       def product_params(product)
-        permitted = params.expect(product: [ :name, :sku, :ean, :description, :description_extra_1, :description_extra_2,
-          :description_extra_3, :status, :tax_rate, *Product::DIMENSIONS.keys, price_inputs: {}, parameters: [ [ :name, :value ] ] ])
+        permitted = params.expect(product: CARD_PARAMS)
         if product.persisted? && product.with_variants?
           permitted.delete(:price_inputs)
         elsif permitted.key?(:price_inputs)
@@ -264,28 +263,16 @@ module Inventory
 
       def form_props(product)
         {
-          product: {
-            id: product.id, catalog_id: product.catalog_id, name: product.name.to_s, sku: product.sku.to_s, ean: product.ean.to_s,
-            description: product.description.to_s, description_extra_1: product.description_extra_1.to_s,
-            description_extra_2: product.description_extra_2.to_s, description_extra_3: product.description_extra_3.to_s,
-            parameters: product.parameters, status: product.status, tax_rate: product.tax_rate.to_i.to_s,
-            **Product::DIMENSIONS.keys.to_h { [ _1, product.public_send(_1).to_s ] },
-            prices: price_inputs_json(product), hasVariants: product.persisted? && product.with_variants?
-          },
+          product: card_json(product),
           catalog: { id: product.catalog.id, name: product.catalog.name },
           catalogs: catalogs_json,
+          categories: categories_json(product.persisted? ? product.catalog : nil),
           # Formularz pokazuje ceny tylko w grupach katalogu produktu (przy nowym produkcie - wybranego katalogu).
           priceGroups: price_groups_json,
           catalogPriceGroups: catalogs.includes(:catalog_price_groups).to_h { [ _1.id.to_s, _1.price_group_ids ] },
           statuses: STATUS_LABELS,
           taxRates: Product::TAX_RATES.map(&:to_s)
         }
-      end
-
-      def images_json(product)
-        product.images.includes(file_attachment: :blob).map do |image|
-          { id: image.id, url: rails_blob_path(image.file, disposition: "inline"), name: image.file.filename.to_s }
-        end
       end
   end
 end

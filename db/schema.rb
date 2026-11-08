@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_03_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_08_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -112,6 +112,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_170000) do
     t.index ["account_id"], name: "index_inventory_catalogs_on_account_id"
   end
 
+  create_table "inventory_categories", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "catalog_id"
+    t.bigint "parent_id"
+    t.string "name", null: false
+    t.string "source", default: "manual", null: false
+    t.string "external_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "source", "external_id"], name: "index_inventory_categories_on_external_id", unique: true, where: "(external_id IS NOT NULL)"
+    t.index ["account_id"], name: "index_inventory_categories_on_account_id"
+    t.index ["catalog_id"], name: "index_inventory_categories_on_catalog_id"
+    t.index ["parent_id"], name: "index_inventory_categories_on_parent_id"
+  end
+
   create_table "inventory_movements", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "warehouse_id", null: false
@@ -193,7 +208,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_170000) do
     t.string "ean"
     t.text "description"
     t.string "status", default: "active", null: false
-    t.decimal "tax_rate", precision: 5, scale: 2, default: "23.0", null: false
+    t.decimal "tax_rate", precision: 5, scale: 2
     t.integer "weight_grams"
     t.integer "position", default: 0, null: false
     t.datetime "created_at", null: false
@@ -211,11 +226,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_170000) do
     t.integer "length_mm"
     t.integer "width_mm"
     t.integer "height_mm"
+    t.string "manufacturer"
+    t.bigint "category_id"
     t.index ["account_id", "ean"], name: "index_inventory_products_on_account_id_and_ean"
     t.index ["account_id"], name: "index_inventory_products_on_account_id"
     t.index ["catalog_id", "parent_id"], name: "index_inventory_products_on_catalog_id_and_parent_id"
     t.index ["catalog_id", "sku"], name: "index_inventory_products_on_catalog_id_and_sku", unique: true, where: "(sku IS NOT NULL)"
+    t.index ["category_id"], name: "index_inventory_products_on_category_id"
     t.index ["parent_id"], name: "index_inventory_products_on_parent_id"
+    t.check_constraint "parent_id IS NOT NULL OR tax_rate IS NOT NULL", name: "inventory_products_main_tax_rate"
   end
 
   create_table "inventory_reservations", force: :cascade do |t|
@@ -400,6 +419,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_170000) do
   add_foreign_key "inventory_catalog_warehouses", "inventory_catalogs", column: "catalog_id", on_delete: :cascade
   add_foreign_key "inventory_catalog_warehouses", "inventory_warehouses", column: "warehouse_id"
   add_foreign_key "inventory_catalogs", "accounts"
+  add_foreign_key "inventory_categories", "accounts"
+  add_foreign_key "inventory_categories", "inventory_catalogs", column: "catalog_id"
+  add_foreign_key "inventory_categories", "inventory_categories", column: "parent_id"
   add_foreign_key "inventory_movements", "accounts"
   add_foreign_key "inventory_movements", "inventory_products", column: "product_id", on_delete: :cascade
   add_foreign_key "inventory_movements", "inventory_warehouses", column: "warehouse_id"
@@ -416,6 +438,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_170000) do
   add_foreign_key "inventory_product_images", "inventory_products", column: "product_id", on_delete: :cascade
   add_foreign_key "inventory_products", "accounts"
   add_foreign_key "inventory_products", "inventory_catalogs", column: "catalog_id"
+  add_foreign_key "inventory_products", "inventory_categories", column: "category_id", on_delete: :nullify
   add_foreign_key "inventory_products", "inventory_products", column: "parent_id"
   add_foreign_key "inventory_reservations", "accounts"
   add_foreign_key "inventory_reservations", "inventory_products", column: "product_id", on_delete: :cascade

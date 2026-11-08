@@ -1,36 +1,33 @@
 import { OptionSelect } from "@/components/option-select"
 import { PriceFields } from "@/components/inventory/price-fields"
 import { errorText, type FormErrors, type PriceGroup, type PriceInputs } from "@/components/inventory/types"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
+import { Card, CardContent } from "@/components/ui/card"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 
-// Stawka VAT: wybór (produkt) albo tylko odczyt (wariant dziedziczy stawkę produktu głównego).
-export type TaxRateControl = { value: string; options: string[]; onChange: (value: string) => void } | { value: string; inherited: true }
+// Stawka VAT. Wariant (`inherited` = stawka produktu głównego) dziedziczy ją, gdy wartość to "": pole pokazuje wtedy
+// stawkę produktu, a wybranie tej samej stawki co produkt wraca do dziedziczenia.
+export type TaxRateControl = { value: string; options: string[]; onChange: (value: string) => void; inherited?: string }
 
 export function TaxRateField({ taxRate, errors }: { taxRate: TaxRateControl; errors?: FormErrors }) {
   const error = errors && errorText(errors, "tax_rate")
+  const { inherited } = taxRate
+  const options = taxRate.options.map((rate) => ({ value: rate, label: `${rate}%` }))
   return (
-    <Field data-invalid={!!error} className="sm:max-w-44">
+    <Field data-invalid={!!error}>
       <FieldLabel htmlFor="tax_rate">Stawka VAT</FieldLabel>
-      {"inherited" in taxRate ? (
-        <>
-          <p className="text-sm font-medium">{taxRate.value}%</p>
-          <FieldDescription>Jak produkt główny.</FieldDescription>
-        </>
-      ) : (
-        <OptionSelect
-          id="tax_rate"
-          options={taxRate.options.map((rate) => ({ value: rate, label: `${rate}%` }))}
-          value={taxRate.value}
-          onChange={taxRate.onChange}
-        />
-      )}
+      <OptionSelect
+        id="tax_rate"
+        options={options}
+        value={taxRate.value || inherited || ""}
+        onChange={(value) => taxRate.onChange(value === inherited ? "" : value)}
+      />
       <FieldError>{error}</FieldError>
     </Field>
   )
 }
 
-// Karta „Ceny i VAT”: stawka VAT i cena brutto w każdej grupie cenowej.
+// Ceny i VAT w jednym rzędzie: stawka VAT, a po niej cena brutto w każdej grupie cenowej katalogu.
+// Bez nagłówka - etykiety pól (VAT, nazwy grup z walutą) mówią same za siebie.
 export function PricesPanel({
   priceGroups,
   value,
@@ -46,16 +43,8 @@ export function PricesPanel({
 }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Ceny i VAT</CardTitle>
-        <CardDescription>
-          Ceny brutto w grupach cenowych katalogu. Puste pole = produkt nie jest sprzedawany w tej grupie. Grupy katalogu wybierasz w Produkty › Ustawienia ›
-          Katalogi.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        <TaxRateField taxRate={taxRate} errors={errors} />
-        <PriceFields priceGroups={priceGroups} value={value} onChange={onChange} errors={errors} />
+      <CardContent>
+        <PriceFields priceGroups={priceGroups} value={value} onChange={onChange} errors={errors} leading={<TaxRateField taxRate={taxRate} errors={errors} />} />
       </CardContent>
     </Card>
   )

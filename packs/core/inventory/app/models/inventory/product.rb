@@ -4,11 +4,17 @@ module Inventory
   # - Produkt prosty: bez rodzica i bez wariantów - ma SKU, EAN, ceny i stany.
   # - Produkt wariantowy: produkt główny (może mieć własne SKU i EAN) z wariantami (`variants`).
   #   Ceny i stany mają warianty; stan produktu głównego to suma wariantów.
-  # - Wariant: produkt z `parent` - ma własną nazwę wariantu (np. „M”), SKU, EAN, ceny i stany.
+  # - Wariant: produkt z `parent` - pełnoprawny produkt z własną nazwą wariantu (np. „M”), SKU, EAN, statusem, cenami
+  #   i stanami. VAT, opisy, wymiary i waga są dziedziczone z produktu głównego, gdy na wariancie są puste (NULL)
+  #   (`effective`). Parametry i zdjęcia to własne wariantu + odziedziczone (`effective_parameters`, `effective_images`).
   #
   # ID produktów zaczynają się od 110 000 000 (migracja StartInventoryProductIdsAt110000000).
   class Product < ApplicationRecord
     TAX_RATES = [ 23, 8, 5, 0 ].freeze
+    DEFAULT_TAX_RATE = 23
+    # Pola, które wariant dziedziczy z produktu głównego, dopóki nie ustawi własnej wartości.
+    INHERITED = %i[tax_rate manufacturer category_id description description_extra_1 description_extra_2 description_extra_3
+                   length_mm width_mm height_mm weight_grams].freeze
     STATUS_LABELS = { "active" => "Aktywny", "draft" => "Szkic" }.freeze
     # Wymiary i waga w formularzu: cm i kg („12,5”, „0,35”); w bazie milimetry i gramy.
     DIMENSIONS = { length_cm: [ :length_mm, 10 ], width_cm: [ :width_mm, 10 ], height_cm: [ :height_mm, 10 ],
@@ -17,6 +23,8 @@ module Inventory
     belongs_to :account
     belongs_to :catalog
     belongs_to :parent, class_name: "Product", optional: true, inverse_of: :variants
+    # Kategoria ogólna albo katalogu produktu. Producent (`manufacturer`) to zwykły tekst.
+    belongs_to :category, optional: true
     has_many :variants, -> { order(:position, :id) }, class_name: "Product", foreign_key: :parent_id,
       dependent: :restrict_with_error, inverse_of: :parent
     has_many :prices, dependent: :delete_all, inverse_of: :product, autosave: true
@@ -26,25 +34,29 @@ module Inventory
 
     attr_readonly :catalog_id, :parent_id
 
-    normalizes :sku, :ean, with: ->(value) { value.strip.presence }
+    normalizes :sku, :ean, :manufacturer, with: ->(value) { value.squish.presence }
 
     before_validation do
       if parent
         self.account ||= parent.account
         self.catalog_id ||= parent.catalog_id
+      elsif new_record?
+        self.tax_rate ||= DEFAULT_TAX_RATE
       end
     end
 
     validates :name, presence: true
     validates :sku, uniqueness: { scope: :catalog_id }, allow_nil: true
     validates :sku, presence: { message: "jest wymagane" }, if: :sellable?
-    validates :tax_rate, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }
+    validates :tax_rate, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_nil: true
+    validates :tax_rate, presence: true, unless: :variant?
     validate :price_inputs_parsable
     validate :dimension_inputs_parsable
     validate :parameters_complete
     validate :parent_is_main_product
     validate :parent_without_stock, on: :create, if: :variant?
     validate :catalog_from_account
+    validate :category_from_catalog
 
     scope :main, -> { where(parent_id: nil) }
     # Produkty z własnymi cenami i stanami: warianty i produkty proste (bez wariantów).
@@ -93,7 +105,8 @@ module Inventory
     # Wymaga `with_family_metrics`.
     scope :stocked_between, ->(range) { where(Arel.sql("family_stock.value").between(range)) }
 
-    def variant? = parent_id.present?
+    # Także wariant budowany razem z nowym produktem głównym (bez `parent_id` przed zapisem).
+    def variant? = parent_id.present? || parent.present?
     def with_variants? = !variant? && variants.any?
 
     # Produkt, który ma własne ceny i stany: prosty albo wariant.
@@ -105,8 +118,36 @@ module Inventory
       variant? ? "#{parent.name} - #{name}" : name
     end
 
-    def effective_tax_rate
-      variant? ? parent.tax_rate : tax_rate
+    # Wartość pola z dziedziczeniem: własna wariantu albo (gdy pusta) produktu głównego.
+    def effective(attribute)
+      raise ArgumentError, "Pole nie jest dziedziczone: #{attribute}" unless INHERITED.include?(attribute.to_sym)
+
+      value = self[attribute]
+      value.nil? && variant? ? parent[attribute] : value
+    end
+
+    def effective_tax_rate = effective(:tax_rate)
+
+    # Parametry produktu głównego, w których wariant nadpisuje wartości (ta sama nazwa), oraz własne parametry wariantu.
+    def effective_parameters
+      return parameters unless variant?
+
+      own = parameters.index_by { _1["name"].downcase }
+      inherited = parent.parameters.map { own.delete(_1["name"].downcase) || _1 }
+      inherited + own.values
+    end
+
+    # Parametry produktu głównego, których wariant nie nadpisuje.
+    def inherited_parameters
+      return [] unless variant?
+
+      own = parameters.map { _1["name"].downcase }
+      parent.parameters.reject { own.include?(_1["name"].downcase) }
+    end
+
+    # Zdjęcia wariantu, a po nich zdjęcia produktu głównego (pierwsze = główne).
+    def effective_images
+      variant? ? images.to_a + parent.images.to_a : images.to_a
     end
 
     # Ceny z formularza: { price_group_id => "199,90" }. Puste pole = brak ceny w tej grupie.
@@ -192,6 +233,16 @@ module Inventory
 
       def catalog_from_account
         errors.add(:catalog, "nie należy do konta") if catalog && catalog.account_id != account_id
+      end
+
+      def category_from_catalog
+        return unless category && will_save_change_to_category_id?
+
+        if category.account_id != account_id
+          errors.add(:category_id, "Kategoria nie należy do konta")
+        elsif !category.general? && category.catalog_id != catalog_id
+          errors.add(:category_id, "Kategoria należy do innego katalogu")
+        end
       end
   end
 end

@@ -154,6 +154,40 @@ module Inventory
     end
   end
 
+  # --- Kategorie ---------------------------------------------------------------------------------
+
+  # Kategorie konta: ogólne i (z `catalog`) kategorie tego katalogu - te, które można przypisać produktom katalogu.
+  def categories(account, catalog: nil)
+    scope = Category.where(account:).order(:name, :id)
+    catalog ? scope.for_catalog(catalog.id) : scope
+  end
+
+  # Import kategorii z marketplace'u (`source`, np. "allegro"). Wiersze: [{ external_id:, name:, parent_external_id: }]
+  # w dowolnej kolejności. Istniejące kategorie (po `source` + `external_id`) dostają nową nazwę i nadrzędną, nowe są
+  # tworzone - jako ogólne albo w katalogu `catalog`. Kategorii spoza importu nie usuwa. Zwraca { external_id => Category }.
+  def import_categories!(account, source:, rows:, catalog: nil)
+    source = source.to_s
+    raise ArgumentError, "Import nie może mieć źródła „#{Category::MANUAL}”" if source == Category::MANUAL
+
+    rows = rows.map { _1.to_h.symbolize_keys.merge(external_id: _1.to_h.symbolize_keys.fetch(:external_id).to_s) }
+    Category.transaction do
+      existing = Category.where(account:, source:, external_id: rows.map { _1[:external_id] }).index_by(&:external_id)
+      by_id = rows.to_h do |row|
+        category = existing[row[:external_id]] || Category.new(account:, source:, external_id: row[:external_id], catalog:)
+        category.name = row[:name]
+        [ row[:external_id], category ]
+      end
+      # Najpierw nazwy (bez nadrzędnych), potem drzewo - nadrzędna może być dalej na liście.
+      by_id.each_value { _1.save!(validate: false) if _1.new_record? }
+      rows.each do |row|
+        parent_id = row[:parent_external_id].presence&.to_s
+        by_id[row[:external_id]].parent = parent_id && (by_id[parent_id] || Category.find_by(account:, source:, external_id: parent_id))
+      end
+      by_id.each_value(&:save!)
+      by_id
+    end
+  end
+
   # Produkty główne (proste i wariantowe) z wariantami i cenami.
   def products(account, catalog: nil)
     scope = Product.main.where(account:).includes(:prices, variants: :prices).order(:name, :id)
@@ -189,17 +223,15 @@ module Inventory
     end
   end
 
-  # Kopia produktu głównego jako szkic: dane, opisy, parametry, wymiary, ceny, zdjęcia i warianty - bez stanu i historii.
+  # Kopia produktu głównego jako szkic: dane, opisy, parametry, wymiary, ceny, zdjęcia i warianty (z ich własnymi
+  # polami i zdjęciami) - bez stanu i historii.
   # SKU dostaje końcówkę „-KOPIA” (SKU jest unikalne w katalogu), EAN zostaje pusty.
   def duplicate_product!(account, id)
-    source = Product.main.where(account:).includes(:prices, :images, variants: :prices).find(id)
+    source = Product.main.where(account:).includes(:prices, :images, variants: %i[prices images]).find(id)
     Product.transaction do
       copy = duplicate_record(source, name: "#{source.name} (kopia)", status: :draft)
-      source.images.each do |image|
-        copy.images.create!(position: image.position, file: { io: StringIO.new(image.file.download),
-          filename: image.file.filename.to_s, content_type: image.file.content_type })
-      end
-      source.variants.each { duplicate_record(_1, parent: copy) }
+      duplicate_images(source, copy)
+      source.variants.each { duplicate_images(_1, duplicate_record(_1, parent: copy)) }
       copy
     end
   end
@@ -373,7 +405,8 @@ module Inventory
     attrs = attrs.to_h.symbolize_keys
     prices = attrs.delete(:prices).to_h
     prices[default_group_id] ||= attrs.delete(:price_cents) if attrs.key?(:price_cents)
-    product.assign_attributes(attrs.slice(:name, :sku, :ean, :description, :status, :tax_rate, :weight_grams))
+    # Wariant bez `tax_rate`, opisu czy wagi dziedziczy je z produktu głównego.
+    product.assign_attributes(attrs.slice(:name, :sku, :ean, *Product::INHERITED, :status, :parameters))
     prices.compact.each { |group_id, cents| product.prices.build(account: product.account, price_group_id: group_id.to_i, amount_cents: cents) }
     product
   end
@@ -387,6 +420,14 @@ module Inventory
     copy
   end
   private_class_method :duplicate_record
+
+  def duplicate_images(source, copy)
+    source.images.each do |image|
+      copy.images.create!(position: image.position, file: { io: StringIO.new(image.file.download),
+        filename: image.file.filename.to_s, content_type: image.file.content_type })
+    end
+  end
+  private_class_method :duplicate_images
 
   def duplicate_sku(source)
     return if source.sku.nil?

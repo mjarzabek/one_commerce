@@ -1,5 +1,5 @@
 # Inventory (w panelu sekcja „Produkty”): lista produktów (Produkty | Zestawy), karta produktu i wariantu
-# oraz ustawienia (Ogólne | Katalogi | Magazyny | Ceny).
+# oraz ustawienia (Ogólne | Katalogi | Magazyny | Ceny | Kategorie).
 scope "inventory", module: :inventory, as: :inventory do
   root "products#index"
   get "bundles", to: "bundles#index", as: :bundles
@@ -8,6 +8,7 @@ scope "inventory", module: :inventory, as: :inventory do
     get "general", to: "settings#general", as: :general
     patch "sources", to: "settings#sources", as: :sources
     resources :catalogs, only: %i[index create update destroy]
+    resources :categories, only: %i[index create update destroy]
     resources :warehouses, only: %i[index create update destroy]
     resources :price_groups, path: "prices", only: %i[index create update destroy]
   end

@@ -6,7 +6,7 @@ import { MovementReason, StockChange, ValueChange } from "@/components/inventory
 import { errorText, formatDate, type FormErrors, type ProductActivity, type ProductStock, type StockInputs, type StockWarehouse } from "@/components/inventory/types"
 import { RowActions } from "@/components/row-actions"
 import { Button } from "@/components/ui/button"
-import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardHeader } from "@/components/ui/card"
 import { FieldError } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -93,11 +93,7 @@ export function StockFields({
   )
 
   return (
-    <Card className="gap-0 pb-0">
-      <CardHeader className="pb-4">
-        <CardTitle>Stan w magazynach</CardTitle>
-        <CardDescription>Każda zmiana trafi do historii. Magazyny ze ścisłą kontrolą zmieniają tylko dokumenty magazynowe.</CardDescription>
-      </CardHeader>
+    <Card className="gap-0 py-0">
       <Table>
         <TableHeader>
           <TableRow>
@@ -157,13 +153,7 @@ export function ReservationsPanel({ reservations }: { reservations: Reservation[
   const withProduct = reservations.some((r) => r.product)
 
   return (
-    <Card className="gap-0 pb-0">
-      <CardHeader className="pb-4">
-        <CardTitle>Aktywne rezerwacje</CardTitle>
-        <CardDescription>
-          Sztuki odłożone dla zamówień - zejdą ze stanu przy wysyłce. Możesz je zrealizować wcześniej (wydać z magazynu) albo zwolnić.
-        </CardDescription>
-      </CardHeader>
+    <Card className="gap-0 py-0">
       <Table>
         <TableHeader>
           <TableRow>
@@ -301,9 +291,7 @@ export function HistoryPanel({ activity }: { activity: ProductActivity }) {
   return (
     <Card className="gap-0 pb-0">
       <CardHeader className="pb-4">
-        <CardTitle>Historia</CardTitle>
-        <CardDescription>{view === "stock" ? "Zmiany stanu w magazynach." : "Zmiany cen w grupach cenowych."}</CardDescription>
-        <CardAction>
+        <CardAction className="col-start-1 row-start-1 justify-self-start">
           <div className="bg-muted inline-flex rounded-lg p-0.5" role="group" aria-label="Rodzaj historii">
             {HISTORY_VIEWS.map((item) => (
               <Button

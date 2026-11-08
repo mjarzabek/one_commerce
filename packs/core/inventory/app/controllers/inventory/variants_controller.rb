@@ -1,10 +1,12 @@
 module Inventory
-  # Warianty produktu: dodawanie, edycja (SKU, EAN, ceny, stan) oraz historia i rezerwacje na karcie wariantu.
+  # Karta wariantu - pełnoprawnego produktu z tymi samymi polami co produkt (dane, zdjęcia, opisy, parametry, wymiary,
+  # VAT, ceny, stan) oraz historią i rezerwacjami. Puste pola dziedziczą wartości produktu głównego.
   class VariantsController < BaseController
     before_action :set_parent, only: %i[new create]
     before_action :set_variant, only: %i[edit update destroy]
 
     # Ceny nowego wariantu podpowiadamy z ostatniego wariantu (pierwszy wariant - z cen produktu).
+    # Wszystkie pola z dziedziczeniem zaczynają puste - wariant bierze je z produktu głównego.
     def new
       prices_from = @parent.variants.last || @parent
       variant = @parent.variants.build(account: Current.account, catalog_id: @parent.catalog_id)
@@ -15,7 +17,7 @@ module Inventory
       variant = @parent.variants.build(account: Current.account, catalog_id: @parent.catalog_id, position: @parent.variants.count)
       variant.assign_attributes(variant_params)
       if variant.save
-        redirect_to edit_inventory_variant_path(variant), notice: "Dodano wariant. Uzupełnij jego stan."
+        redirect_to edit_inventory_variant_path(variant, tab: "sales"), notice: "Dodano wariant. Uzupełnij jego stan."
       else
         redirect_with_errors(variant, to: new_inventory_product_variant_path(@parent, tab: params[:tab].presence))
       end
@@ -23,7 +25,8 @@ module Inventory
 
     def edit
       render inertia: "core/inventory/variants/edit", props: form_props(@variant).merge(
-        stock: stock_json(@variant), activity: activity_json(@variant), reservationsEnabled: reservations_enabled?
+        images: images_json(@variant), stock: stock_json(@variant), activity: activity_json(@variant),
+        reservationsEnabled: reservations_enabled?, siblings: @variant.parent.variants.map { { id: _1.id, name: _1.name } }
       )
     end
 
@@ -58,11 +61,13 @@ module Inventory
       end
 
       def set_variant
-        @variant = Product.where(account: Current.account).where.not(parent_id: nil).includes(:prices, :parent).find(params[:id])
+        @variant = Product.where(account: Current.account).where.not(parent_id: nil)
+          .includes(:prices, parent: [ :catalog, { images: { file_attachment: :blob } }, :variants ]).find(params[:id])
       end
 
+      # Pusty VAT (""), opis (null) i wymiar ("") = dziedziczenie z produktu głównego.
       def variant_params
-        permitted = params.expect(variant: [ :name, :sku, :ean, price_inputs: {} ])
+        permitted = params.expect(variant: CARD_PARAMS)
         permitted[:price_inputs] = catalog_price_inputs(permitted[:price_inputs], (@variant || @parent).catalog) if permitted.key?(:price_inputs)
         permitted
       end
@@ -70,10 +75,14 @@ module Inventory
       def form_props(variant, prices_from: variant)
         parent = variant.parent
         {
-          variant: { id: variant.id, name: variant.name.to_s, sku: variant.sku.to_s, ean: variant.ean.to_s, prices: price_inputs_json(prices_from) },
-          parent: { id: parent.id, name: parent.name, sku: parent.sku, taxRate: parent.tax_rate.to_i.to_s },
+          variant: card_json(variant).merge(prices: price_inputs_json(prices_from)),
+          parent: { id: parent.id, name: parent.name, sku: parent.sku },
+          inherited: inherited_json(parent),
           catalog: { id: parent.catalog.id, name: parent.catalog.name },
-          priceGroups: price_groups_json(parent.catalog)
+          categories: categories_json(parent.catalog),
+          priceGroups: price_groups_json(parent.catalog),
+          statuses: Product::STATUS_LABELS,
+          taxRates: Product::TAX_RATES.map(&:to_s)
         }
       end
   end

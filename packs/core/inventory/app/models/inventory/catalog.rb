@@ -8,6 +8,8 @@ module Inventory
     has_many :catalog_warehouses, dependent: :delete_all, inverse_of: :catalog, autosave: true
     has_many :warehouses, -> { order(:position, :id) }, through: :catalog_warehouses
     has_many :catalog_price_groups, dependent: :delete_all, inverse_of: :catalog, autosave: true
+    # Kategorie katalogu znikają razem z nim (katalog bez produktów); ogólne zostają.
+    has_many :categories, dependent: :delete_all
 
     validates :name, presence: true, uniqueness: { scope: :account_id }
     validate :has_warehouse
