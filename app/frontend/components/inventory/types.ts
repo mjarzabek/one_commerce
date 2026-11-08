@@ -1,4 +1,5 @@
 import type { Crumb } from "@/components/page-bar"
+import { plural } from "@/lib/plural"
 
 export type CatalogOption = { id: number; name: string }
 
@@ -51,8 +52,8 @@ export const errorText = (errors: FormErrors, key: string) => {
   return Array.isArray(value) ? value.join(" ") : value
 }
 
-export const variantsWord = (count: number) =>
-  count === 1 ? "wariant" : [2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100) ? "warianty" : "wariantów"
+export const variantsWord = (count: number) => plural(count, ["wariant", "warianty", "wariantów"])
+export const productsWord = (count: number) => plural(count, ["produkt", "produkty", "produktów"])
 
 export const formatDate = (iso: string) => new Date(iso).toLocaleString("pl-PL", { dateStyle: "short", timeStyle: "short" })
 
