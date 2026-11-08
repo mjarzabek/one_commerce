@@ -198,6 +198,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_170000) do
     t.integer "position", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "extra_description_1"
+    t.text "extra_description_2"
+    t.text "extra_description_3"
+    t.jsonb "custom_fields", default: {}, null: false
+    t.jsonb "options", default: [], null: false
+    t.string "option_values", default: [], null: false, array: true
     t.text "description_extra_1"
     t.text "description_extra_2"
     t.text "description_extra_3"
