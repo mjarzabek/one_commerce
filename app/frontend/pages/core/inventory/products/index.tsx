@@ -1,10 +1,11 @@
 import { Head, Link, router } from "@inertiajs/react"
-import { ChevronDownIcon, LibraryIcon, PlusIcon, ShirtIcon, TagIcon, TagsIcon, Trash2Icon, WarehouseIcon } from "lucide-react"
+import { ChevronDownIcon, PlusIcon, ShirtIcon, TagIcon, Trash2Icon } from "lucide-react"
 import { useMemo } from "react"
 
 import { BulkActionBar } from "@/components/data-table/bulk-action-bar"
 import { DataTable } from "@/components/data-table/data-table"
 import { EmptyState } from "@/components/data-table/empty-state"
+import { FramedSelect } from "@/components/data-table/filter-panel"
 import type { PaginationState } from "@/components/data-table/pagination"
 import { DataTableToolbar } from "@/components/data-table/toolbar"
 import type { FilterSchema, FilterValues } from "@/components/data-table/types"
@@ -15,7 +16,6 @@ import { productColumns } from "@/components/inventory/product-list/columns"
 import type { ListRow, ProductRow, Warehouse } from "@/components/inventory/product-list/types"
 import { StatusBadge } from "@/components/inventory/status-badge"
 import { productsWord, type CatalogOption } from "@/components/inventory/types"
-import { OptionSelect } from "@/components/option-select"
 import { PageBar } from "@/components/page-bar"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -88,33 +88,33 @@ export default function InventoryProducts({ products, pagination, filterSchema, 
 
         <DataTableToolbar id="inventory-products" server={table} searchLabel="Szukaj po nazwie lub ID">
           {catalogs.length > 1 && (
-            <OptionSelect
-              className="w-auto"
-              icon={LibraryIcon}
+            <FramedSelect
+              id="toolbar-catalog"
+              className="w-44"
               label="Katalog"
               options={catalogs.map((c) => ({ value: String(c.id), label: c.name }))}
               value={String(catalog.id)}
               onChange={(value) => visit({ catalog_id: Number(value), warehouse_id: null, price_group_id: null })}
             />
           )}
-          {priceGroups.length > 1 && (
-            <OptionSelect
-              className="w-auto"
-              icon={TagsIcon}
-              label="Cena w grupie cenowej"
-              options={priceGroups.map((g) => ({ value: String(g.id), label: g.name }))}
-              value={String(view.price_group_id)}
-              onChange={(value) => visit({ price_group_id: Number(value) }, { reset: false })}
-            />
-          )}
           {warehouses.length > 1 && (
-            <OptionSelect
-              className="w-auto"
-              icon={WarehouseIcon}
-              label="Stan w magazynie"
+            <FramedSelect
+              id="toolbar-warehouse"
+              className="w-44"
+              label="Magazyn"
               options={[{ value: ALL, label: "Wszystkie magazyny" }, ...warehouses.map((w) => ({ value: String(w.id), label: w.name }))]}
               value={view.warehouse_id ? String(view.warehouse_id) : ALL}
               onChange={(value) => visit({ warehouse_id: value === ALL ? null : Number(value) }, { reset: false })}
+            />
+          )}
+          {priceGroups.length > 1 && (
+            <FramedSelect
+              id="toolbar-price-group"
+              className="w-44"
+              label="Cena"
+              options={priceGroups.map((g) => ({ value: String(g.id), label: g.name }))}
+              value={String(view.price_group_id)}
+              onChange={(value) => visit({ price_group_id: Number(value) }, { reset: false })}
             />
           )}
         </DataTableToolbar>

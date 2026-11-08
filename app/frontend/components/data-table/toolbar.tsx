@@ -30,7 +30,7 @@ export function DataTableToolbar({ id, server, searchLabel, children }: { id: st
           />
         </div>
         {hasFilters && <FilterToggle schema={filterSchema} values={filters} open={filtersOpen} onToggle={() => setFiltersOpen(!filtersOpen)} />}
-        {children && <div className="ml-auto flex flex-wrap items-center gap-2">{children}</div>}
+        {children && <div className="ml-auto flex flex-wrap items-center gap-x-2 gap-y-4">{children}</div>}
       </div>
 
       {hasFilters &&

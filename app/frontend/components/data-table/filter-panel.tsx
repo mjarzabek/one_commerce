@@ -42,6 +42,37 @@ function Framed({ label, htmlFor, children, className }: { label: ReactNode; htm
   )
 }
 
+type Option = { value: string; label: string }
+
+// Select w ramce z etykietą - ten sam wygląd co pola panelu filtrów (używany też w pasku narzędzi).
+export function FramedSelect({
+  label,
+  options,
+  value,
+  onChange,
+  id,
+  className,
+}: {
+  label: ReactNode
+  options: Option[]
+  value: string
+  onChange: (value: string) => void
+  id?: string
+  className?: string
+}) {
+  return (
+    <Framed label={label} htmlFor={id} className={className}>
+      <OptionSelect
+        id={id}
+        className="h-full w-full border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent"
+        options={options}
+        value={value}
+        onChange={onChange}
+      />
+    </Framed>
+  )
+}
+
 const bare = "h-full w-full min-w-0 bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground/60"
 
 // Panel filtrów nad tabelą rysowany ze schematu: gęsta siatka pól, Enter = zastosuj.
@@ -81,15 +112,14 @@ export function FilterPanel({
       }
       case "select":
         return (
-          <Framed key={filter.key} label={filter.label} htmlFor={id}>
-            <OptionSelect
-              id={id}
-              className="h-full w-full border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent"
-              options={[{ value: ANY, label: "Dowolny" }, ...(filter.options ?? [])]}
-              value={draft[filter.key] || ANY}
-              onChange={(value) => set(filter.key, value === ANY ? "" : value)}
-            />
-          </Framed>
+          <FramedSelect
+            key={filter.key}
+            id={id}
+            label={filter.label}
+            options={[{ value: ANY, label: "Dowolny" }, ...(filter.options ?? [])]}
+            value={draft[filter.key] || ANY}
+            onChange={(value) => set(filter.key, value === ANY ? "" : value)}
+          />
         )
       default:
         return (
