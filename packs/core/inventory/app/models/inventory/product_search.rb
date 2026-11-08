@@ -49,13 +49,15 @@ module Inventory
 
     def schema = FILTERS.map(&:schema)
 
+    # Liczba produktów na stronę (spoza PER_PAGE → 50).
+    def per = PER_PAGE.include?(@params[:per].to_i) ? @params[:per].to_i : 50
+
     # Bieżąca strona; strona spoza zakresu (np. po usunięciu produktów) → ostatnia.
     def pagy
       @pagy ||= begin
-        limit = PER_PAGE.include?(@params[:per].to_i) ? @params[:per].to_i : 50
         count = scope.count(:all)
-        pagy = Pagy::Offset.new(count:, limit:, page: [ @params[:page].to_i, 1 ].max)
-        pagy.page > pagy.last ? Pagy::Offset.new(count:, limit:, page: pagy.last) : pagy
+        pagy = Pagy::Offset.new(count:, limit: per, page: [ @params[:page].to_i, 1 ].max)
+        pagy.page > pagy.last ? Pagy::Offset.new(count:, limit: per, page: pagy.last) : pagy
       end
     end
 

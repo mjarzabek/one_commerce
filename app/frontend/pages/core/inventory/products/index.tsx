@@ -9,7 +9,7 @@ import { FramedSelect } from "@/components/data-table/filter-panel"
 import type { PaginationState } from "@/components/data-table/pagination"
 import { DataTableToolbar } from "@/components/data-table/toolbar"
 import type { FilterSchema, FilterValues } from "@/components/data-table/types"
-import { useServerTable, type Params } from "@/components/data-table/use-server-table"
+import { useServerTable } from "@/components/data-table/use-server-table"
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
 import { InventoryTabs } from "@/components/inventory/inventory-tabs"
 import { productColumns } from "@/components/inventory/product-list/columns"
@@ -21,11 +21,12 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
-type View = { q: string; catalog_id: number; warehouse_id: number | null; price_group_id: number; sort: string; dir: "asc" | "desc" }
+type View = { q: string; catalog_id: number; warehouse_id: number | null; price_group_id: number; sort: string; dir: "asc" | "desc"; per: number }
 
 type Props = {
-  products: ProductRow[]
-  pagination: PaginationState
+  // Przy wejściu na listę serwer dosyła je osobnym zapytaniem (deferred) - do tego czasu tabela ma skeleton.
+  products?: ProductRow[]
+  pagination?: PaginationState
   filterSchema: FilterSchema[]
   filters: FilterValues
   view: View
@@ -36,6 +37,7 @@ type Props = {
   priceGroups: { id: number; name: string; currency: string }[]
 }
 
+// „Wszystkie magazyny” wysyłamy jawnie - bez parametru serwer przywróciłby zapamiętany magazyn.
 const ALL = "all"
 const rowId = (row: ListRow) => row.id
 const subRows = (row: ListRow) => row.variants
@@ -47,12 +49,6 @@ export default function InventoryProducts({ products, pagination, filterSchema, 
     pagination,
     filterSchema,
     filters,
-    persist: {
-      key: "inventory-products-view",
-      keys: ["sort", "dir", "per", "catalog_id", "price_group_id", "warehouse_id"],
-      // Zapamiętany katalog mógł zostać usunięty - wtedy przywracamy tylko sortowanie i liczbę na stronę.
-      sanitize: (saved: Params) => (catalogs.some((c) => c.id === saved.catalog_id) ? saved : { sort: saved.sort, dir: saved.dir, per: saved.per }),
-    },
   })
   const { visit, selection } = table
 
@@ -63,9 +59,11 @@ export default function InventoryProducts({ products, pagination, filterSchema, 
     [view.price_group_id, stockWarehouse, statuses],
   )
 
-  const pageIds = products.map((product) => product.id)
+  const rows = products ?? []
+  const total = pagination?.total ?? 0
+  const pageIds = rows.map((product) => product.id)
   const pageSelected = pageIds.length > 0 && pageIds.every(selection.isSelected)
-  const selectedCount = selection.count(pagination.total)
+  const selectedCount = selection.count(total)
 
   const bulk = (operation: Record<string, string>) =>
     router.post("/inventory/products/bulk", table.bulkParams(operation), { preserveScroll: true, onSuccess: () => selection.clear() })
@@ -104,7 +102,7 @@ export default function InventoryProducts({ products, pagination, filterSchema, 
               label="Magazyn"
               options={[{ value: ALL, label: "Wszystkie magazyny" }, ...warehouses.map((w) => ({ value: String(w.id), label: w.name }))]}
               value={view.warehouse_id ? String(view.warehouse_id) : ALL}
-              onChange={(value) => visit({ warehouse_id: value === ALL ? null : Number(value) }, { reset: false })}
+              onChange={(value) => visit({ warehouse_id: value === ALL ? ALL : Number(value) }, { reset: false })}
             />
           )}
           {priceGroups.length > 1 && (
@@ -120,7 +118,8 @@ export default function InventoryProducts({ products, pagination, filterSchema, 
         </DataTableToolbar>
 
         <DataTable<ListRow>
-          data={products}
+          data={rows}
+          loading={!products}
           columns={columns}
           rowId={rowId}
           getSubRows={subRows}
@@ -153,7 +152,7 @@ export default function InventoryProducts({ products, pagination, filterSchema, 
       <BulkActionBar
         count={selectedCount}
         onClear={selection.clear}
-        total={pagination.total}
+        total={total}
         pageSelected={pageSelected}
         onPage={(selected) => selection.setPage(pageIds, selected)}
         onAll={selection.selectAll}

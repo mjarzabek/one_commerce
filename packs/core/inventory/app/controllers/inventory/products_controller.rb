@@ -2,46 +2,31 @@ module Inventory
   # Lista produktów katalogu (z rozwijanymi wariantami) i karta produktu.
   class ProductsController < BaseController
     STATUS_LABELS = Product::STATUS_LABELS
+    # Zapamiętany sposób wyświetlania listy (cookie, osobno dla konta). Filtrów, wyszukiwania i strony nie zapamiętujemy.
+    VIEW_KEYS = %w[catalog_id warehouse_id price_group_id sort dir per].freeze
+    ALL_WAREHOUSES = "all"
 
     before_action :set_product, only: %i[edit update destroy price available duplicate]
+    before_action :restore_view, only: :index
 
     # Lista produktów katalogu: wyszukiwanie, filtry ze schematu ProductSearch::FILTERS, sortowanie, strony.
+    # Przy wejściu na listę produkty i stronicowanie dochodzą osobnym zapytaniem (deferred) - strona z paskiem narzędzi
+    # pokazuje się od razu, a tabela w tym czasie ma skeleton.
     def index
       search, warehouse, warehouses, groups = build_search
       group = search.price_group
-      products = search.records
-      variant_stock = Inventory.available(Current.account, products.flat_map { _1.variants.map(&:id) }, warehouse_id: warehouse&.id)
-      price_label = ->(cents) { cents.compact.uniq.sort.values_at(0, -1).compact.uniq.map { Inventory.format_price(_1, group.currency) }.join(" - ").presence }
-      # Rezerwacje w tych samych magazynach co kolumna „Stan” (wybrany albo wszystkie z katalogu).
-      reserved = StockItem.where(account: Current.account, product_id: products.flat_map { [ _1.id, *_1.variants.map(&:id) ] },
-        warehouse_id: warehouse ? warehouse.id : warehouses.map(&:id)).group(:product_id).sum(:reserved)
-      # Cena do pola edycji z listy - tylko produkty sprzedawalne (prosty, wariant).
-      price_input = ->(product) { Inventory.format_money_input(product.price_cents_in(group.id)) }
+      remember_view(search, warehouse, group)
+      list = ->(block) { from_list? ? block : InertiaRails.defer(group: "list", &block) }
 
       render inertia: "core/inventory/products/index", props: {
-        products: products.map do |product|
-          variants = product.variants.to_a
-          own_prices = variants.any? ? variants.map { _1.price_cents_in(group.id) } : [ product.price_cents_in(group.id) ]
-          {
-            id: product.id, name: product.name, sku: product.sku, ean: product.ean, status: product.status,
-            image: product.images.first&.then { rails_representation_path(_1.file.variant(:thumb)) },
-            price: price_label.(own_prices), stock: product.stock_value.to_i, sellable: variants.none?,
-            reserved: variants.any? ? variants.sum { reserved.fetch(_1.id, 0) } : reserved.fetch(product.id, 0),
-            priceInput: variants.any? ? nil : price_input.(product),
-            variants: variants.map do |variant|
-              { id: variant.id, name: variant.name, sku: variant.sku, ean: variant.ean,
-                price: price_label.([ variant.price_cents_in(group.id) ]), stock: variant_stock.fetch(variant.id), sellable: true,
-                reserved: reserved.fetch(variant.id, 0), priceInput: price_input.(variant) }
-            end
-          }
-        end,
-        pagination: { page: search.pagy.page, pages: search.pagy.pages, per: search.pagy.limit, total: search.pagy.count },
+        products: list.(-> { products_json(search, warehouse, warehouses, group) }),
+        pagination: list.(-> { { page: search.pagy.page, pages: search.pagy.pages, per: search.pagy.limit, total: search.pagy.count } }),
         filterSchema: search.schema.map do |filter|
           filter[:key] == "price" ? filter.merge(unit: group.currency) : filter
         end,
         filters: search.param_values,
         view: { q: search.query, catalog_id: current_catalog.id, warehouse_id: warehouse&.id, price_group_id: group.id,
-                sort: search.sort, dir: search.direction },
+                sort: search.sort, dir: search.direction, per: search.per },
         catalogs: catalogs_json,
         catalog: { id: current_catalog.id, name: current_catalog.name },
         warehouses: warehouses.map { { id: _1.id, name: _1.name, strict_control: _1.strict_control } },
@@ -161,6 +146,66 @@ module Inventory
     end
 
     private
+      def products_json(search, warehouse, warehouses, group)
+        products = search.records
+        variant_stock = Inventory.available(Current.account, products.flat_map { _1.variants.map(&:id) }, warehouse_id: warehouse&.id)
+        price_label = ->(cents) { cents.compact.uniq.sort.values_at(0, -1).compact.uniq.map { Inventory.format_price(_1, group.currency) }.join(" - ").presence }
+        # Rezerwacje w tych samych magazynach co kolumna „Stan” (wybrany albo wszystkie z katalogu).
+        reserved = StockItem.where(account: Current.account, product_id: products.flat_map { [ _1.id, *_1.variants.map(&:id) ] },
+          warehouse_id: warehouse ? warehouse.id : warehouses.map(&:id)).group(:product_id).sum(:reserved)
+        # Cena do pola edycji z listy - tylko produkty sprzedawalne (prosty, wariant).
+        price_input = ->(product) { Inventory.format_money_input(product.price_cents_in(group.id)) }
+
+        products.map do |product|
+          variants = product.variants.to_a
+          own_prices = variants.any? ? variants.map { _1.price_cents_in(group.id) } : [ product.price_cents_in(group.id) ]
+          {
+            id: product.id, name: product.name, sku: product.sku, ean: product.ean, status: product.status,
+            image: product.images.first&.then { rails_representation_path(_1.file.variant(:thumb)) },
+            price: price_label.(own_prices), stock: product.stock_value.to_i, sellable: variants.none?,
+            reserved: variants.any? ? variants.sum { reserved.fetch(_1.id, 0) } : reserved.fetch(product.id, 0),
+            priceInput: variants.any? ? nil : price_input.(product),
+            variants: variants.map do |variant|
+              { id: variant.id, name: variant.name, sku: variant.sku, ean: variant.ean,
+                price: price_label.([ variant.price_cents_in(group.id) ]), stock: variant_stock.fetch(variant.id), sellable: true,
+                reserved: reserved.fetch(variant.id, 0), priceInput: price_input.(variant) }
+            end
+          }
+        end
+      end
+
+      # Wizyta z samej listy (filtry, sortowanie, strona, powrót po zmianie ceny/stanu z listy) - tabela jest już na ekranie,
+      # więc produkty idą w tej samej odpowiedzi (bez skeletonu i bez znikania wierszy, tylko przygaszenie na froncie).
+      def from_list?
+        request.inertia? && request.referer.present? && URI(request.referer).path == request.path
+      rescue URI::InvalidURIError
+        false
+      end
+
+      def view_cookie = "inventory_products_view_#{Current.account.id}"
+
+      # Parametry widoku, których nie ma w adresie, bierzemy z zapamiętanego widoku - serwer od razu renderuje właściwy
+      # widok (bez drugiego zapytania z przeglądarki). Adres ma pierwszeństwo.
+      def restore_view
+        saved = cookies.signed[view_cookie]
+        return unless saved.is_a?(Hash)
+
+        saved = saved.slice(*VIEW_KEYS)
+        saved.delete("catalog_id") unless catalogs.exists?(id: saved["catalog_id"])
+        # Magazyn i grupa cenowa należą do katalogu - po przejściu do innego katalogu zostają domyślne.
+        saved = saved.except("warehouse_id", "price_group_id") if params[:catalog_id].present? && params[:catalog_id].to_s != saved["catalog_id"].to_s
+        saved.each { |key, value| params[key] = value unless params.key?(key) }
+      end
+
+      # „Wszystkie magazyny” zapisujemy jawnie, żeby nie przywrócić przy następnym wejściu wcześniej wybranego magazynu.
+      def remember_view(search, warehouse, group)
+        cookies.permanent.signed[view_cookie] = {
+          value: { "catalog_id" => current_catalog.id, "warehouse_id" => warehouse&.id || ALL_WAREHOUSES, "price_group_id" => group.id,
+                   "sort" => search.sort, "dir" => search.direction, "per" => search.per },
+          httponly: true, same_site: :lax
+        }
+      end
+
       def build_search
         warehouses = Inventory.warehouses(Current.account, catalog: current_catalog).to_a
         # Kolumna i filtr „Stan”: łącznie (domyślnie) albo w wybranym magazynie.

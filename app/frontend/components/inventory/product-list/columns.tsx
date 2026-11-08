@@ -4,6 +4,7 @@ import { columnHelper, type DataTableFeatures } from "@/components/data-table/da
 import { SortableHeader, SortMenuHeader, type SortOption } from "@/components/data-table/sortable-header"
 import { InlinePrice, InlineStock, LockedStock, StockValue } from "@/components/inventory/inline-edit"
 import { StatusBadge } from "@/components/inventory/status-badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 import { HistoryLink, ProductCell, ProductThumb, VariantMarker, VariantsToggle } from "./product-cell"
@@ -38,11 +39,23 @@ const editPath = (row: Row) => (isVariant(row) ? `/inventory/variants/${row.orig
 
 const col = columnHelper<ListRow>()
 
+// Skeleton komórki „Produkt” w kształcie ProductCell (miniatura, nazwa, kody) - ta sama wysokość wiersza.
+const productSkeleton = (
+  <div className="flex items-center gap-3">
+    <Skeleton className="size-9 shrink-0" />
+    <div className="flex w-full max-w-60 flex-col gap-1.5">
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-3 w-2/3" />
+    </div>
+  </div>
+)
+
 // Kolumny listy produktów. Wywoływać w useMemo - zależą od widoku (grupa cenowa, magazyn).
 export const productColumns = ({ priceGroupId, stockWarehouse, statuses }: Options) =>
   col.columns([
     col.display({
       id: "product",
+      meta: { skeleton: productSkeleton },
       header: (context) => (
         <SortMenuHeader context={context} options={PRODUCT_SORTS}>
           Produkt
@@ -102,14 +115,14 @@ export const productColumns = ({ priceGroupId, stockWarehouse, statuses }: Optio
     col.display({
       id: "status",
       header: "Status",
-      meta: { width: "w-36", className: "truncate" },
+      meta: { width: "w-36", className: "truncate", skeleton: <Skeleton className="h-5 w-16 rounded-full" /> },
       cell: ({ row }) => row.original.status && <StatusBadge status={row.original.status} label={statuses[row.original.status]} />,
     }),
 
     col.display({
       id: "history",
       header: () => <span className="sr-only">Historia</span>,
-      meta: { width: "w-12", align: "right" },
+      meta: { width: "w-12", align: "right", skeleton: null },
       cell: ({ row }) => <HistoryLink href={`${editPath(row)}?tab=history`} name={fullName(row)} />,
     }),
   ])

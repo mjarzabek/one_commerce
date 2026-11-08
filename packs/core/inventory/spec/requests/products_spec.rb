@@ -11,6 +11,14 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
     Inventory.ensure_setup!(account)
   end
 
+  # Lista dosyła produkty i stronicowanie osobnym zapytaniem (deferred) - w testach od razu je liczymy.
+  around do |example|
+    InertiaRails::Testing.evaluate_optional_props = true
+    example.run
+  ensure
+    InertiaRails::Testing.evaluate_optional_props = false
+  end
+
   def add_warehouse(name)
     Inventory::Warehouse.create!(account:, name:, position: 1).tap do |warehouse|
       catalog.update!(warehouse_ids: catalog.warehouse_ids + [ warehouse.id ])
@@ -51,6 +59,68 @@ RSpec.describe "Produkty - lista, produkty i warianty", type: :request do
       kubek, szal = inertia.props[:products]
       expect(kubek["image"]).to start_with("/rails/active_storage/representations/")
       expect(szal["image"]).to be_nil
+    end
+
+    it "dosyła produkty i stronicowanie osobnym zapytaniem, a pasek narzędzi od razu" do
+      InertiaRails::Testing.evaluate_optional_props = false
+      create(:product, account:, name: "Kubek")
+
+      get "/inventory"
+
+      expect(inertia).to have_deferred_props(:products, :pagination, group: :list)
+      expect(inertia.props.keys).not_to include(:products, :pagination)
+      expect(inertia.props[:view]).to include("sort" => "name", "per" => 50)
+
+      inertia_load_deferred_props(:list)
+
+      expect(inertia.props[:products].sole).to include("name" => "Kubek")
+      expect(inertia.props[:pagination]).to include("total" => 1)
+
+      # Zmiana widoku z samej listy - produkty od razu, tabela tylko przygasa (bez skeletonu).
+      get "/inventory", params: { sort: "id" }, headers: { "X-Inertia" => "true", "Referer" => "http://www.example.com/inventory?sort=name" }
+
+      expect(inertia).not_to have_deferred_props
+      expect(inertia.props[:products].sole).to include("name" => "Kubek")
+    end
+
+    describe "zapamiętany widok" do
+      let!(:shop) { add_warehouse("Punkt Y") }
+      let!(:allegro) do
+        Inventory.price_groups(account).create!(name: "Allegro").tap { catalog.update!(price_group_ids: [ retail.id, _1.id ]) }
+      end
+
+      it "przy wejściu bez parametrów od razu renderuje ostatni widok, a adres ma pierwszeństwo" do
+        get "/inventory", params: { sort: "price", dir: "desc", per: 100, warehouse_id: shop.id, price_group_id: allegro.id, q: "kub", sku: "X" }
+        get "/inventory"
+
+        expect(inertia.props[:view]).to include("sort" => "price", "dir" => "desc", "per" => 100, "warehouse_id" => shop.id,
+          "price_group_id" => allegro.id, "q" => "")
+        expect(inertia.props[:filters]).to include("sku" => "")
+
+        get "/inventory", params: { sort: "id" }
+        expect(inertia.props[:view]).to include("sort" => "id", "dir" => "desc", "per" => 100)
+      end
+
+      it "pamięta wybór wszystkich magazynów" do
+        get "/inventory", params: { warehouse_id: shop.id }
+        get "/inventory", params: { warehouse_id: "all" }
+        get "/inventory"
+
+        expect(inertia.props[:view]["warehouse_id"]).to be_nil
+      end
+
+      it "po zmianie katalogu nie przenosi magazynu i grupy cenowej, a usunięty katalog zastępuje domyślnym" do
+        hurt = Inventory::Catalog.create!(account:, name: "Hurt", warehouse_ids: [ shop.id ], price_group_ids: [ retail.id, allegro.id ])
+        get "/inventory", params: { catalog_id: hurt.id, warehouse_id: shop.id, price_group_id: allegro.id, sort: "price" }
+
+        get "/inventory", params: { catalog_id: catalog.id }
+        expect(inertia.props[:view]).to include("catalog_id" => catalog.id, "warehouse_id" => nil, "price_group_id" => retail.id, "sort" => "price")
+
+        get "/inventory", params: { catalog_id: hurt.id, warehouse_id: shop.id }
+        hurt.destroy!
+        get "/inventory"
+        expect(inertia.props[:view]).to include("catalog_id" => catalog.id, "sort" => "price")
+      end
     end
 
     describe "wyszukiwanie i filtry" do
