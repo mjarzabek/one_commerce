@@ -20,7 +20,7 @@
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
-    "@inertiajs/core": "^3.7.1",
+    "@inertiajs/core": "^3.11.0",
     "@inertiajs/vite": "^3.7.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.3",
