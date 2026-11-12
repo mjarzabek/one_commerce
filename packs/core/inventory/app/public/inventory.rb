@@ -209,6 +209,25 @@ module Inventory
     scope.select(&:sellable?).map { product_info(_1, price_group) }
   end
 
+  # Wyszukiwanie produktów sprzedawalnych (proste i warianty) po nazwie (także produktu głównego), SKU i EAN -
+  # np. do dodawania pozycji zamówienia. Migawki z ceną z `price_group`, najwyżej `limit`, alfabetycznie.
+  def search_sellable(account, query, price_group:, limit: 20)
+    pattern = "%#{ActiveRecord::Base.sanitize_sql_like(query.to_s.strip)}%"
+    scope = Product.sellable.where(account:).includes(:prices, :parent, :variants)
+    scope = scope.where(
+      "inventory_products.name ILIKE :pattern OR inventory_products.sku ILIKE :pattern OR inventory_products.ean ILIKE :pattern " \
+      "OR inventory_products.parent_id IN (SELECT p.id FROM inventory_products p WHERE p.name ILIKE :pattern)", pattern:
+    ) if query.present?
+    scope.order(:name, :id).limit(limit).to_a.sort_by(&:display_name).map { product_info(_1, price_group) }
+  end
+
+  # Zdjęcia główne produktów (wariant bez własnego - zdjęcie produktu głównego): { product_id => ActiveStorage::Attached::One }.
+  # Miniatura: `.variant(:thumb)`.
+  def main_images(account, product_ids)
+    Product.where(account:, id: product_ids).includes(images: { file_attachment: :blob }, parent: { images: { file_attachment: :blob } })
+      .each_with_object({}) { |product, result| (image = product.effective_images.first) && result[product.id] = image.file }
+  end
+
   # Usuwa produkty główne razem z wariantami - także z towarem i historią. Baza usuwa z nimi stany, ruchy,
   # rezerwacje, ceny i historię cen; pozycje zamówień zostają (z własną nazwą, SKU i ceną), bez powiązania z produktem.
   # Zwraca liczbę usuniętych produktów.
@@ -374,6 +393,23 @@ module Inventory
 
   def reservations_for(holder)
     Reservation.held_by(holder).order(:id)
+  end
+
+  # Stan towaru posiadacza (np. zamówienia) w magazynie:
+  #   :deducted  - towar zszedł ze stanu (wysyłka, realizacja rezerwacji)
+  #   :returned  - towar zszedł i wrócił na stan (zwrot)
+  #   :reserved  - są aktywne rezerwacje
+  #   :cancelled - rezerwacje zwolnione (anulowanie), nic nie zeszło
+  #   :none      - bez rezerwacji i bez ruchów
+  def stock_state(holder)
+    movements = Movement.held_by(holder).where(reason: %w[sale return])
+    reservations = Reservation.held_by(holder)
+    if -movements.sum(:quantity) > 0 then :deducted
+    elsif movements.exists?(reason: "return") then :returned
+    elsif reservations.active.exists? then :reserved
+    elsif reservations.released.exists? then :cancelled
+    else :none
+    end
   end
 
   # --- Kwoty ---------------------------------------------------------------------------------

@@ -11,7 +11,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
-export type Crumb = { label: string; href?: string }
+// `label` ostatniego okruszka (tytuł strony) może mieć dopisek, np. numer zamówienia i nazwę klienta.
+export type Crumb = { label: ReactNode; href?: string }
 
 const SlotContext = createContext<{ slot: HTMLElement | null; setSlot: (el: HTMLElement | null) => void }>({
   slot: null,
@@ -41,7 +42,7 @@ export function PageBar({ breadcrumbs, actions }: { breadcrumbs: Crumb[]; action
           {breadcrumbs.map((item, index) => {
             const last = index === breadcrumbs.length - 1
             return (
-              <Fragment key={`${item.label}-${index}`}>
+              <Fragment key={index}>
                 {index > 0 && <BreadcrumbSeparator className={last ? undefined : "max-sm:hidden"} />}
                 <BreadcrumbItem className={last ? "min-w-0" : "max-sm:hidden"}>
                   {item.href && !last ? (

@@ -41,23 +41,21 @@ RSpec.describe "Magazyn zamówienia" do
 
     it "nie zdejmuje drugi raz towaru zrealizowanego ręcznie" do
       Inventory.fulfill_reservation!(account, reservation.id)
-      Orders.transition!(order, to: :processing)
-      Orders.transition!(order, to: :shipped)
+      Orders.fulfill_stock!(order)
 
       expect(on_hand).to eq(3)
     end
 
     it "zdejmuje przy wysyłce towar z rezerwacji zwolnionej ręcznie" do
       Inventory.release_reservation!(account, reservation.id)
-      Orders.transition!(order, to: :processing)
-      Orders.transition!(order, to: :shipped)
+      Orders.fulfill_stock!(order)
 
       expect(on_hand).to eq(3)
     end
 
     it "przy anulowaniu przyjmuje z powrotem towar zrealizowany ręcznie" do
       Inventory.fulfill_reservation!(account, reservation.id)
-      Orders.transition!(order, to: :cancelled)
+      Orders.release_stock!(order)
 
       expect(on_hand).to eq(5)
     end

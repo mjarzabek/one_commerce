@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_08_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_10_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -317,6 +317,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_120000) do
     t.index ["account_id"], name: "index_module_licenses_on_account_id"
   end
 
+  create_table "orders_custom_fields", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.string "kind", default: "text", null: false
+    t.jsonb "options", default: [], null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_orders_custom_fields_on_account_id_and_name", unique: true
+  end
+
   create_table "orders_items", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "order_id", null: false
@@ -352,7 +363,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_120000) do
     t.string "customer_name"
     t.string "customer_email"
     t.string "customer_phone"
-    t.string "status", default: "new", null: false
     t.string "payment_status", default: "unpaid", null: false
     t.string "currency", default: "PLN", null: false
     t.bigint "price_group_id"
@@ -368,12 +378,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "warehouse_id"
+    t.bigint "status_id", null: false
+    t.string "payment_method"
+    t.jsonb "pickup_point", default: {}, null: false
+    t.boolean "wants_invoice", default: false, null: false
+    t.jsonb "custom_fields", default: {}, null: false
+    t.integer "paid_cents", default: 0, null: false
+    t.text "customer_message"
     t.index ["account_id", "number"], name: "index_orders_orders_on_account_id_and_number", unique: true
+    t.index ["account_id", "placed_at"], name: "index_orders_orders_on_account_id_and_placed_at"
     t.index ["account_id", "source", "external_id"], name: "index_orders_orders_on_account_id_and_source_and_external_id", unique: true, where: "(external_id IS NOT NULL)"
-    t.index ["account_id", "status"], name: "index_orders_orders_on_account_id_and_status"
+    t.index ["account_id", "status_id"], name: "index_orders_orders_on_account_id_and_status_id"
     t.index ["account_id"], name: "index_orders_orders_on_account_id"
     t.index ["customer_id"], name: "index_orders_orders_on_customer_id"
     t.index ["price_group_id"], name: "index_orders_orders_on_price_group_id"
+    t.index ["status_id"], name: "index_orders_orders_on_status_id"
     t.index ["warehouse_id"], name: "index_orders_orders_on_warehouse_id"
   end
 
@@ -385,9 +404,36 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_120000) do
     t.bigint "user_id"
     t.text "note"
     t.datetime "created_at", null: false
+    t.bigint "from_status_id"
+    t.bigint "to_status_id"
     t.index ["account_id"], name: "index_orders_status_changes_on_account_id"
+    t.index ["from_status_id"], name: "index_orders_status_changes_on_from_status_id"
     t.index ["order_id"], name: "index_orders_status_changes_on_order_id"
+    t.index ["to_status_id"], name: "index_orders_status_changes_on_to_status_id"
     t.index ["user_id"], name: "index_orders_status_changes_on_user_id"
+  end
+
+  create_table "orders_status_groups", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_orders_status_groups_on_account_id_and_name", unique: true
+  end
+
+  create_table "orders_statuses", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "group_id"
+    t.string "name", null: false
+    t.string "color", default: "gray", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "default", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_orders_statuses_on_account_id_and_name", unique: true
+    t.index ["account_id"], name: "index_orders_statuses_one_default", unique: true, where: "\"default\""
+    t.index ["group_id"], name: "index_orders_statuses_on_group_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -452,6 +498,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_120000) do
   add_foreign_key "memberships", "accounts"
   add_foreign_key "memberships", "users"
   add_foreign_key "module_licenses", "accounts"
+  add_foreign_key "orders_custom_fields", "accounts"
   add_foreign_key "orders_items", "accounts"
   add_foreign_key "orders_items", "inventory_products", column: "product_id", on_delete: :nullify
   add_foreign_key "orders_items", "orders_orders", column: "order_id"
@@ -460,8 +507,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_120000) do
   add_foreign_key "orders_orders", "customers_customers", column: "customer_id"
   add_foreign_key "orders_orders", "inventory_price_groups", column: "price_group_id", on_delete: :nullify
   add_foreign_key "orders_orders", "inventory_warehouses", column: "warehouse_id"
+  add_foreign_key "orders_orders", "orders_statuses", column: "status_id"
   add_foreign_key "orders_status_changes", "accounts"
   add_foreign_key "orders_status_changes", "orders_orders", column: "order_id"
+  add_foreign_key "orders_status_changes", "orders_statuses", column: "from_status_id", on_delete: :nullify
+  add_foreign_key "orders_status_changes", "orders_statuses", column: "to_status_id", on_delete: :nullify
   add_foreign_key "orders_status_changes", "users"
+  add_foreign_key "orders_status_groups", "accounts"
+  add_foreign_key "orders_statuses", "accounts"
+  add_foreign_key "orders_statuses", "orders_status_groups", column: "group_id", on_delete: :nullify
   add_foreign_key "sessions", "users"
 end

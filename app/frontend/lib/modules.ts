@@ -74,7 +74,13 @@ export type NavLink = Pick<ModuleInfo, "name" | "href" | "icon"> & {
 
 // Ekrany Core dostępne razem z panelem zamówień (Live lub MultiChannel).
 export const CORE_NAV: NavLink[] = [
-  ORDERS_PANEL,
+  {
+    ...ORDERS_PANEL,
+    items: [
+      { name: "Lista zamówień", href: "/orders", match: (url) => !url.startsWith("/orders/settings") },
+      { name: "Ustawienia", href: "/orders/settings" },
+    ],
+  },
   {
     name: "Produkty",
     href: "/inventory",

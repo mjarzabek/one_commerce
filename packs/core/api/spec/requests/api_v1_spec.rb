@@ -53,7 +53,8 @@ RSpec.describe "REST API v1", type: :request do
       get "/api/v1/orders", headers: headers
 
       data = response.parsed_body["data"].sole
-      expect(data).to include("number" => order.number, "status" => "new", "total_cents" => 15_000)
+      expect(data).to include("number" => order.number, "total_cents" => 15_000)
+      expect(data["status"]).to eq("id" => order.status_id, "name" => "Nowe")
       expect(data["customer"]).to include("name" => "Anna")
       expect(data["items"].sole).to include("sku" => "SUK-M", "quantity" => 1)
     end
@@ -61,7 +62,7 @@ RSpec.describe "REST API v1", type: :request do
     it "zwraca jedno zamówienie z historią statusów" do
       get "/api/v1/orders/#{order.id}", headers: headers
 
-      expect(response.parsed_body.dig("data", "status_changes").sole).to include("to_status" => "new")
+      expect(response.parsed_body.dig("data", "status_changes").sole).to include("to_status" => "Nowe", "to_status_id" => order.status_id)
     end
 
     it "zwraca produkty z dostępnością" do
