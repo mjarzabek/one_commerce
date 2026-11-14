@@ -4,8 +4,6 @@ module Orders
   class StatusChange < ApplicationRecord
     belongs_to :account
     belongs_to :order, inverse_of: :status_changes
-    belongs_to :from_status_record, class_name: "Orders::Status", foreign_key: :from_status_id, optional: true
-    belongs_to :to_status_record, class_name: "Orders::Status", foreign_key: :to_status_id, optional: true
 
     before_validation { self.account ||= order&.account }
 
