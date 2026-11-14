@@ -1,5 +1,0 @@
-# Pakiet główny: konfiguracja, layout, testy integracyjne i seedy.
-# Nie jest częścią żadnego modułu, więc może odwoływać się do wszystkich.
-enforce_dependencies: false
-enforce_privacy: false
-dependencies: []

@@ -19,7 +19,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <AppSidebar />
         <SidebarInset
           scroll-region=""
-          className="bg-canvas min-w-0 overflow-y-auto md:rounded-tl-xl md:border-t md:border-l md:border-foreground/6"
+          className="bg-canvas has-data-full-bleed:bg-card min-w-0 overflow-y-auto md:rounded-tl-xl md:border-t md:border-l md:border-foreground/6"
         >
           <PageBarProvider>
             <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">

@@ -14,6 +14,7 @@ import { FolderPlusIcon, PencilIcon, PlusIcon, StarIcon, Trash2Icon } from "luci
 import { useEffect, useRef, useState } from "react"
 
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
+import { FullBleed, fullBleedTabsClass } from "@/components/full-bleed"
 import { InfoBox } from "@/components/info-box"
 import { NameDialog } from "@/components/inventory/name-dialog"
 import { errorText, type FormErrors } from "@/components/inventory/types"
@@ -26,7 +27,6 @@ import { RowActions } from "@/components/row-actions"
 import { DragGrip, NoDrag, sortableContextProps, sortableStyle, useSortableSensors } from "@/components/sortable"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { plural } from "@/lib/plural"
 import { cn } from "@/lib/utils"
@@ -59,8 +59,8 @@ export default function OrdersSettingsStatuses({ tree, colors }: Props) {
               label: group.name,
             })),
           ]}
-          value={String(data.group_id || NO_GROUP)}
-          onChange={(value) => setData("group_id", value === NO_GROUP ? "" : value)}
+          value={String(data.status_group_id || NO_GROUP)}
+          onChange={(value) => setData("status_group_id", value === NO_GROUP ? "" : value)}
         />
       </Field>
       <Field data-invalid={!!errorText(errors, "color")}>
@@ -113,7 +113,7 @@ export default function OrdersSettingsStatuses({ tree, colors }: Props) {
               action={`${BASE}/statuses`}
               initial={{
                 name: "",
-                group_id: tree.groups[0] ? String(tree.groups[0].id) : "",
+                status_group_id: tree.groups[0] ? String(tree.groups[0].id) : "",
                 color: "blue",
               }}
               submitLabel="Dodaj status"
@@ -129,9 +129,9 @@ export default function OrdersSettingsStatuses({ tree, colors }: Props) {
           </>
         }
       />
-      <Card className="gap-0 py-0">
-        <OrdersSettingsTabs className="mt-0 px-2" />
-        <div className="border-b p-4">
+      <FullBleed>
+        <OrdersSettingsTabs className={fullBleedTabsClass} />
+        <div className="border-b px-(--table-inset) py-4">
           <InfoBox title="Statusy pokazują, na jakim etapie jest zamówienie">
             <p>
               Grupy zbierają kilka statusów pod jedną pozycją na liście zamówień, np. „Do realizacji”. Nowe zamówienia dostają status oznaczony jako
@@ -146,13 +146,13 @@ export default function OrdersSettingsStatuses({ tree, colors }: Props) {
           <span />
         </div>
         <StatusBoard tree={tree} fields={statusFields} />
-      </Card>
+      </FullBleed>
     </>
   )
 }
 
-// Wiersz listy: nazwa | liczba zamówień | akcje.
-const ROW = "grid grid-cols-[minmax(0,1fr)_7rem_3rem] items-center gap-2 border-b px-4"
+// Wiersz listy: nazwa | liczba zamówień | akcje. Odstęp z `FullBleed` (z fallbackiem dla podglądu przeciąganego wiersza).
+const ROW = "grid grid-cols-[minmax(0,1fr)_7rem_3rem] items-center gap-2 border-b px-[var(--table-inset,1rem)]"
 
 // Układ listy do przeciągania: kolejność grup i statusy w sekcjach (klucz: id grupy albo NONE - bez grupy).
 type Layout = { groups: number[]; sections: Record<string, number[]> }
@@ -239,7 +239,7 @@ function StatusBoard({ tree, fields }: { tree: StatusTree; fields: (form: Dialog
       `${BASE}/statuses/reorder`,
       {
         groups: next.groups,
-        sections: [NONE, ...next.groups.map(String)].map((key) => ({ group_id: key === NONE ? null : Number(key), statuses: next.sections[key] ?? [] })),
+        sections: [NONE, ...next.groups.map(String)].map((key) => ({ status_group_id: key === NONE ? null : Number(key), statuses: next.sections[key] ?? [] })),
       },
       { preserveScroll: true, preserveState: true, onError: () => setLayout(snapshot.current) },
     )
@@ -440,7 +440,7 @@ function StatusActions({ status, fields }: { status: OrderStatus; fields: (form:
         method="patch"
         initial={{
           name: status.name,
-          group_id: status.group_id ? String(status.group_id) : "",
+          status_group_id: status.status_group_id ? String(status.status_group_id) : "",
           color: status.color,
         }}
       >

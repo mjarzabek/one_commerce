@@ -108,12 +108,12 @@ export function DataTable<T extends RowData>({
 
   const leafColumns = table.getAllLeafColumns()
   const lastIndex = leafColumns.length - 1
-  // Skrajne komórki mają większy odstęp od krawędzi karty.
-  const edge = (index: number) => cn(index === 0 && !selection && "pl-4", index === lastIndex && "pr-4")
+  // Skrajne komórki mają większy odstęp od krawędzi karty (na stronie bez karty - wyrównanie do tytułu).
+  const edge = (index: number) => cn(index === 0 && !selection && "pl-[var(--table-inset,1rem)]", index === lastIndex && "pr-[var(--table-inset,1rem)]")
   const meta = (column: { columnDef: { meta?: DataTableColumnMeta } }) => column.columnDef.meta ?? {}
 
   const pagination = server && (
-    <div className="border-t px-4 py-2 first:border-t-0">
+    <div className="border-t px-[var(--table-inset,1rem)] py-2 first:border-t-0">
       {server.pagination && !loading ? (
         <Pagination pagination={server.pagination} noun={noun?.(server.pagination.total) ?? ""} onPage={server.goToPage} onPer={server.setPer} />
       ) : (
@@ -145,7 +145,7 @@ export function DataTable<T extends RowData>({
             {table.getHeaderGroups().map((group) => (
               <TableRow key={group.id}>
                 {selection && (
-                  <TableHead className="pl-4">
+                  <TableHead className="pl-[var(--table-inset,1rem)]">
                     <Checkbox
                       aria-label="Zaznacz wszystkie na stronie"
                       checked={pageSelected}
@@ -171,7 +171,7 @@ export function DataTable<T extends RowData>({
               Array.from({ length: SKELETON_ROWS }, (_, index) => (
                 <TableRow key={index} className="hover:bg-transparent">
                   {selection && (
-                    <TableCell className="pl-4">
+                    <TableCell className="pl-[var(--table-inset,1rem)]">
                       <Skeleton className="size-4" />
                     </TableCell>
                   )}
@@ -199,7 +199,7 @@ export function DataTable<T extends RowData>({
                 return (
                   <TableRow key={row.id} data-state={selected ? "selected" : undefined} className={cn(child && "bg-muted/30")}>
                     {selection && (
-                      <TableCell className="pl-4">
+                      <TableCell className="pl-[var(--table-inset,1rem)]">
                         {!child && (
                           <Checkbox aria-label={`Zaznacz ${rowLabel?.(row.original) ?? id}`} checked={selected} onCheckedChange={() => selection.toggle(id)} />
                         )}

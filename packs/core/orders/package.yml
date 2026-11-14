@@ -1,9 +1,0 @@
-enforce_dependencies: true
-enforce_privacy: true
-dependencies:
-  - packs/core/platform
-  - packs/core/accounts
-  - packs/core/panel
-  - packs/core/licensing
-  - packs/core/inventory
-  - packs/core/customers

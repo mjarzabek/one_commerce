@@ -10,7 +10,7 @@ export default function ChatIndex() {
       <ModuleHome
         info={MODULES.chat}
         nextSteps={[
-          "Modele inboxes, conversations, messages w packs/chat",
+          "Modele inboxes, conversations, messages w Chat",
           "Adapter Chat::Allegro::Messaging na wspólnym połączeniu Allegro",
           "Messenger i IG DM na połączeniu Meta",
           "Podgląd zamówień kupującego obok rozmowy",

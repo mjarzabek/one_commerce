@@ -1,9 +1,10 @@
 import { Head } from "@inertiajs/react"
 import { BoxesIcon } from "lucide-react"
 
-import { PageBar } from "@/components/page-bar"
+import { EmptyState } from "@/components/data-table/empty-state"
+import { FullBleed, fullBleedTabsClass } from "@/components/full-bleed"
 import { InventoryTabs } from "@/components/inventory/inventory-tabs"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageBar } from "@/components/page-bar"
 
 // Zakładka „Zestawy” - zapowiedź, zestawy jeszcze nie istnieją.
 export default function InventoryBundles() {
@@ -11,18 +12,16 @@ export default function InventoryBundles() {
     <>
       <Head title="Zestawy" />
       <PageBar breadcrumbs={[{ label: "Produkty", href: "/inventory" }, { label: "Zestawy" }]} />
-      <Card className="gap-0 pt-0">
-        <InventoryTabs className="mt-0 mb-6 px-2" />
-        <CardHeader className="items-center text-center">
-          <div className="bg-muted mx-auto mb-2 flex size-10 items-center justify-center rounded-lg">
-            <BoxesIcon className="size-5" />
-          </div>
-          <CardTitle>Zestawy - wkrótce</CardTitle>
-          <CardDescription>
-            Zestaw połączy kilka produktów w jedną pozycję sprzedaży - ze wspólną ceną i stanem liczonym ze stanów produktów składowych.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <FullBleed>
+        <InventoryTabs className={fullBleedTabsClass} />
+        <div className="mx-auto max-w-md px-(--table-inset) py-16">
+          <EmptyState
+            icon={BoxesIcon}
+            title="Zestawy - wkrótce"
+            description="Zestaw połączy kilka produktów w jedną pozycję sprzedaży - ze wspólną ceną i stanem liczonym ze stanów produktów składowych."
+          />
+        </div>
+      </FullBleed>
     </>
   )
 }

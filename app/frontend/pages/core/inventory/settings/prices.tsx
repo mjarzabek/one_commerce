@@ -3,6 +3,7 @@ import { PencilIcon, PlusIcon, StarIcon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
+import { FullBleed, fullBleedTabsClass } from "@/components/full-bleed"
 import { InventorySettingsTabs } from "@/components/inventory/inventory-tabs"
 import { NameDialog } from "@/components/inventory/name-dialog"
 import { OptionSelect } from "@/components/option-select"
@@ -11,7 +12,6 @@ import { PageBar } from "@/components/page-bar"
 import { RowActions } from "@/components/row-actions"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
@@ -100,23 +100,22 @@ export default function InventorySettingsPrices({ priceGroups, sellable, currenc
           </NameDialog>
         }
       />
-      {/* Zakładki w karcie razem z tabelą - jak na liście produktów. */}
-      <Card className="gap-0 py-0">
-        <InventorySettingsTabs className="mt-0 px-2" />
+      <FullBleed>
+        <InventorySettingsTabs className={fullBleedTabsClass} />
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="pl-4">Nazwa</TableHead>
+              <TableHead className="pl-(--table-inset)">Nazwa</TableHead>
               <TableHead>Waluta</TableHead>
               <TableHead>Katalogi</TableHead>
               <TableHead className="text-right">Produktów z ceną</TableHead>
-              <TableHead className="pr-4" />
+              <TableHead className="pr-(--table-inset)" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {priceGroups.map((group) => (
               <TableRow key={group.id}>
-                <TableCell className="pl-4 font-medium">
+                <TableCell className="pl-(--table-inset) font-medium">
                   <span className="inline-flex items-center gap-1.5">
                     {group.default && <DefaultStar />}
                     {group.name}
@@ -144,14 +143,14 @@ export default function InventorySettingsPrices({ priceGroups, sellable, currenc
                 <TableCell className="text-right tabular-nums">
                   {group.priced} / {sellable}
                 </TableCell>
-                <TableCell className="pr-4 text-right">
+                <TableCell className="pr-(--table-inset) text-right">
                   <PriceGroupActions group={group} currencyField={currencyField} />
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </Card>
+      </FullBleed>
     </>
   )
 }

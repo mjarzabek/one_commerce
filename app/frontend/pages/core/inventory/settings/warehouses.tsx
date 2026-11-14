@@ -3,6 +3,7 @@ import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
+import { FullBleed, fullBleedTabsClass } from "@/components/full-bleed"
 import { InventorySettingsTabs } from "@/components/inventory/inventory-tabs"
 import { NameDialog } from "@/components/inventory/name-dialog"
 import type { CatalogOption } from "@/components/inventory/types"
@@ -10,7 +11,7 @@ import { PageBar } from "@/components/page-bar"
 import { RowActions } from "@/components/row-actions"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
@@ -72,10 +73,9 @@ export default function InventorySettingsWarehouses({ warehouses }: Props) {
           />
         }
       />
-      {/* Zakładki w karcie razem z tabelą - jak na liście produktów. */}
-      <Card className="gap-0 py-0">
-        <InventorySettingsTabs className="mt-0 px-2" />
-        <CardHeader className="py-4">
+      <FullBleed>
+        <InventorySettingsTabs className={fullBleedTabsClass} />
+        <CardHeader className="px-(--table-inset) py-4">
           <CardTitle>Magazyny</CardTitle>
           <CardDescription>
             Bez ścisłej kontroli stan to zwykłe pole na karcie produktu - zmieniasz je ręcznie, a historia zapisuje, z ilu na ile. Ze ścisłą
@@ -85,17 +85,17 @@ export default function InventorySettingsWarehouses({ warehouses }: Props) {
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="pl-4">Nazwa</TableHead>
+              <TableHead className="pl-(--table-inset)">Nazwa</TableHead>
               <TableHead>Katalogi</TableHead>
               <TableHead className="text-right">Sztuk na stanie</TableHead>
               <TableHead className="text-right">Ścisła kontrola</TableHead>
-              <TableHead className="pr-4" />
+              <TableHead className="pr-(--table-inset)" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {warehouses.map((warehouse) => (
               <TableRow key={warehouse.id}>
-                <TableCell className="pl-4 font-medium">{warehouse.name}</TableCell>
+                <TableCell className="pl-(--table-inset) font-medium">{warehouse.name}</TableCell>
                 <TableCell>
                   {warehouse.catalogs.length === 0 ? (
                     <span className="text-muted-foreground text-sm">
@@ -124,14 +124,14 @@ export default function InventorySettingsWarehouses({ warehouses }: Props) {
                     }
                   />
                 </TableCell>
-                <TableCell className="pr-4 text-right">
+                <TableCell className="pr-(--table-inset) text-right">
                   <WarehouseActions warehouse={warehouse} canDelete={warehouses.length > 1} />
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </Card>
+      </FullBleed>
     </>
   )
 }

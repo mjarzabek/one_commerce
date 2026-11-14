@@ -19,9 +19,6 @@ gem "inertia_rails", "~> 3.22"
 # Pagination [https://ddnexus.github.io/pagy]
 gem "pagy", "~> 43.8"
 
-# Modular monolith: autoloading packs from packs/* [https://github.com/rubyatscale/packs-rails]
-gem "packs-rails"
-
 # Polish translations for Rails (validation messages, dates)
 gem "rails-i18n", "~> 8.1"
 
@@ -57,10 +54,6 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
-
-  # Module boundaries checked in CI [https://github.com/Shopify/packwerk]
-  gem "packwerk", "~> 3.2", require: false
-  gem "packwerk-extensions", require: false
 
   # Tests
   gem "rspec-rails", "~> 8.0"

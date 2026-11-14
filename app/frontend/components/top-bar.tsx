@@ -97,7 +97,7 @@ export function TopBar() {
                         <DropdownMenu>
                             <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg p-1 pr-2 text-sm hover:bg-foreground/5">
                                 <Avatar className="size-7 rounded-md">
-                                    <AvatarFallback className="rounded-md bg-emerald-300 text-xs font-semibold text-emerald-950">
+                                    <AvatarFallback className="rounded-md bg-foreground/8 text-xs font-semibold text-foreground">
                                         {auth.user.initials}
                                     </AvatarFallback>
                                 </Avatar>

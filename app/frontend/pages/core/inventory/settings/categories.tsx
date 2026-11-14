@@ -3,6 +3,7 @@ import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
+import { FullBleed, fullBleedTabsClass } from "@/components/full-bleed"
 import { InventorySettingsTabs } from "@/components/inventory/inventory-tabs"
 import { NameDialog } from "@/components/inventory/name-dialog"
 import { errorText, productsWord, type CatalogOption, type FormErrors } from "@/components/inventory/types"
@@ -12,7 +13,6 @@ import { PageBar } from "@/components/page-bar"
 import { RowActions } from "@/components/row-actions"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
@@ -106,16 +106,16 @@ export default function InventorySettingsCategories({ categories, catalogs }: Pr
           </NameDialog>
         }
       />
-      <Card className="gap-0 py-0">
-        <InventorySettingsTabs className="mt-0 px-2" />
+      <FullBleed>
+        <InventorySettingsTabs className={fullBleedTabsClass} />
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="pl-4">Nazwa</TableHead>
+              <TableHead className="pl-(--table-inset)">Nazwa</TableHead>
               <TableHead>Katalog</TableHead>
               <TableHead>Źródło</TableHead>
               <TableHead className="text-right">Produkty</TableHead>
-              <TableHead className="pr-4" />
+              <TableHead className="pr-(--table-inset)" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -128,7 +128,7 @@ export default function InventorySettingsCategories({ categories, catalogs }: Pr
             )}
             {categories.map((category) => (
               <TableRow key={category.id}>
-                <TableCell className="pl-4 font-medium">
+                <TableCell className="pl-(--table-inset) font-medium">
                   <span style={{ paddingLeft: `${depth(category) * 1.25}rem` }}>
                     {depth(category) > 0 && <span className="text-muted-foreground mr-1.5">└</span>}
                     {category.name}
@@ -139,14 +139,14 @@ export default function InventorySettingsCategories({ categories, catalogs }: Pr
                   <Badge variant="outline">{category.source}</Badge>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{category.products}</TableCell>
-                <TableCell className="pr-4 text-right">
+                <TableCell className="pr-(--table-inset) text-right">
                   <CategoryActions category={category} hasChildren={categories.some((c) => c.parent_id === category.id)} fields={categoryFields(category)} />
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </Card>
+      </FullBleed>
     </>
   )
 }

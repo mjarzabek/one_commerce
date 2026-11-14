@@ -48,7 +48,7 @@ export function ProductCell({ row, href, image, addon, variant = false }: { row:
         <div className="flex min-w-0 items-center gap-2">
           <Link
             href={href}
-            className={cn("hover:text-primary truncate underline-offset-4 hover:underline", !variant && "font-medium")}
+            className={cn("truncate underline-offset-4 hover:underline", !variant && "font-medium")}
             title={variant ? `Edytuj wariant „${row.name}”` : `Edytuj produkt „${row.name}”`}
           >
             {row.name}

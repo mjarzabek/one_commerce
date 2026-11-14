@@ -41,7 +41,7 @@ function Item({
       aria-current={active || undefined}
       className={cn(
         "hover:bg-foreground/5 flex h-7 w-full min-w-0 items-center gap-2 rounded-md px-2 text-left text-[13px]",
-        active && "bg-card hover:bg-card ring-border font-medium shadow-xs ring-1",
+        active && "bg-foreground/8 hover:bg-foreground/8 font-medium",
         className,
       )}
     >

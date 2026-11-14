@@ -1,5 +1,0 @@
-enforce_dependencies: true
-enforce_privacy: true
-dependencies:
-  - packs/core/platform
-  - packs/core/accounts

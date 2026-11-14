@@ -5,6 +5,7 @@ import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
+import { FullBleed, fullBleedTabsClass } from "@/components/full-bleed"
 import { InfoBox } from "@/components/info-box"
 import { NameDialog } from "@/components/inventory/name-dialog"
 import { errorText, type FormErrors } from "@/components/inventory/types"
@@ -15,7 +16,6 @@ import { PageBar } from "@/components/page-bar"
 import { RowActions } from "@/components/row-actions"
 import { DragGrip, NoDrag, sortableContextProps, sortableStyle, useSortableSensors } from "@/components/sortable"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
@@ -105,9 +105,9 @@ export default function OrdersSettingsFields({ fields, kinds }: Props) {
           </NameDialog>
         }
       />
-      <Card className="gap-0 py-0">
-        <OrdersSettingsTabs className="mt-0 px-2" />
-        <div className="border-b p-4">
+      <FullBleed>
+        <OrdersSettingsTabs className={fullBleedTabsClass} />
+        <div className="border-b px-(--table-inset) py-4">
           <InfoBox title="Pola dodatkowe to własne informacje zapisywane przy zamówieniu">
             <p>Np. priorytet, termin wysyłki albo numer reklamacji. Uzupełnia się je na karcie zamówienia w sekcji „Pola dodatkowe”.</p>
             <p>Przeciągnij wiersz, aby zmienić kolejność, w jakiej pola są tam pokazywane.</p>
@@ -116,10 +116,10 @@ export default function OrdersSettingsFields({ fields, kinds }: Props) {
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="pl-10">Nazwa</TableHead>
+              <TableHead className="pl-[calc(var(--table-inset)+--spacing(6))]">Nazwa</TableHead>
               <TableHead>Typ</TableHead>
               <TableHead className="text-right">Zamówienia</TableHead>
-              <TableHead className="w-12 pr-4" />
+              <TableHead className="w-12 pr-(--table-inset)" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -139,7 +139,7 @@ export default function OrdersSettingsFields({ fields, kinds }: Props) {
             </DndContext>
           </TableBody>
         </Table>
-      </Card>
+      </FullBleed>
     </>
   )
 }
@@ -156,7 +156,7 @@ function SortableFieldRow({ field, kind, form }: { field: CustomField; kind: str
       {...listeners}
       className={cn("bg-card relative cursor-grab touch-none active:cursor-grabbing", isDragging && "z-10 shadow-lg")}
     >
-      <TableCell className="pl-4 font-medium">
+      <TableCell className="pl-(--table-inset) font-medium">
         <span className="flex items-center gap-2">
           <DragGrip />
           {field.name}
@@ -167,7 +167,7 @@ function SortableFieldRow({ field, kind, form }: { field: CustomField; kind: str
         {field.kind === "select" && <span className="text-muted-foreground ml-2 text-sm">{field.options.join(", ")}</span>}
       </TableCell>
       <TableCell className="text-right tabular-nums">{field.orders}</TableCell>
-      <TableCell className="pr-4 text-right">
+      <TableCell className="pr-(--table-inset) text-right">
         <NoDrag>
           <FieldActions field={field} form={form} />
         </NoDrag>

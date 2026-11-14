@@ -9,6 +9,7 @@ import type { PaginationState } from "@/components/data-table/pagination";
 import { DataTableToolbar } from "@/components/data-table/toolbar";
 import type { FilterSchema, FilterValues } from "@/components/data-table/types";
 import { useServerTable } from "@/components/data-table/use-server-table";
+import { FullBleed } from "@/components/full-bleed";
 import { orderColumns, type OrderRow } from "@/components/orders/columns";
 import { StatusMenuItems } from "@/components/orders/status-menu";
 import {
@@ -19,7 +20,6 @@ import {
 import { ordersWord, type StatusTree } from "@/components/orders/types";
 import { PageBar } from "@/components/page-bar";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -105,29 +105,30 @@ export default function OrdersIndex({
                 actions={<Button disabled>Nowe zamówienie</Button>}
             />
 
-            <div className="grid gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
-                <aside className="hidden lg:block">
-                    <div className="sticky top-4">
-                        <StatusSidebar
-                            tree={statusTree}
-                            total={totalCount}
-                            value={selected}
-                            onChange={select}
-                        />
-                    </div>
-                </aside>
+            <FullBleed>
+                <div className="grid flex-1 border-t lg:grid-cols-[14rem_minmax(0,1fr)]">
+                    {/* Pozycje statusów mają własne px-2 - tekst w linii z tytułem strony. */}
+                    <aside className="hidden border-r lg:block">
+                        <div className="sticky top-0 py-3 pr-3 pl-[calc(var(--table-inset)-var(--spacing)*2)]">
+                            <StatusSidebar
+                                tree={statusTree}
+                                total={totalCount}
+                                value={selected}
+                                onChange={select}
+                            />
+                        </div>
+                    </aside>
 
-                <div className="flex min-w-0 flex-col gap-3">
-                    <div className="lg:hidden">
-                        <StatusSelect
-                            tree={statusTree}
-                            total={totalCount}
-                            value={selected}
-                            onChange={select}
-                        />
-                    </div>
+                    <div className="flex min-w-0 flex-col">
+                        <div className="px-(--table-inset) pt-3 lg:hidden">
+                            <StatusSelect
+                                tree={statusTree}
+                                total={totalCount}
+                                value={selected}
+                                onChange={select}
+                            />
+                        </div>
 
-                    <Card className="gap-0 py-0">
                         <DataTableToolbar
                             id="orders"
                             server={table}
@@ -172,9 +173,9 @@ export default function OrdersIndex({
                                 )
                             }
                         />
-                    </Card>
+                    </div>
                 </div>
-            </div>
+            </FullBleed>
 
             {/* Miejsce na pasek akcji, żeby nie zasłaniał ostatniego wiersza. */}
             {selectedCount > 0 && <div className="h-16" aria-hidden />}

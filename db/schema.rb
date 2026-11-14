@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_10_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_12_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -424,7 +424,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_090000) do
 
   create_table "orders_statuses", force: :cascade do |t|
     t.bigint "account_id", null: false
-    t.bigint "group_id"
+    t.bigint "status_group_id"
     t.string "name", null: false
     t.string "color", default: "gray", null: false
     t.integer "position", default: 0, null: false
@@ -433,7 +433,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_090000) do
     t.datetime "updated_at", null: false
     t.index ["account_id", "name"], name: "index_orders_statuses_on_account_id_and_name", unique: true
     t.index ["account_id"], name: "index_orders_statuses_one_default", unique: true, where: "\"default\""
-    t.index ["group_id"], name: "index_orders_statuses_on_group_id"
+    t.index ["status_group_id"], name: "index_orders_statuses_on_status_group_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -515,6 +515,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_090000) do
   add_foreign_key "orders_status_changes", "users"
   add_foreign_key "orders_status_groups", "accounts"
   add_foreign_key "orders_statuses", "accounts"
-  add_foreign_key "orders_statuses", "orders_status_groups", column: "group_id", on_delete: :nullify
+  add_foreign_key "orders_statuses", "orders_status_groups", column: "status_group_id", on_delete: :nullify
   add_foreign_key "sessions", "users"
 end

@@ -3,8 +3,9 @@ import { PenLineIcon, RadioIcon, StoreIcon, type LucideIcon } from "lucide-react
 
 import { OptionSelect } from "@/components/option-select"
 import { PageBar } from "@/components/page-bar"
+import { FullBleed, fullBleedTabsClass } from "@/components/full-bleed"
 import { InventorySettingsTabs } from "@/components/inventory/inventory-tabs"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
@@ -30,10 +31,9 @@ export default function InventorySettingsGeneral({ warehouses, sources }: Props)
     <>
       <Head title="Ustawienia ogólne" />
       <PageBar breadcrumbs={[{ label: "Produkty", href: "/inventory" }, { label: "Ustawienia", href: "/inventory/settings" }, { label: "Ogólne" }]} />
-      {/* Zakładki w karcie - jak na liście produktów. */}
-      <Card className="gap-0 py-0">
-        <InventorySettingsTabs className="mt-0 px-2" />
-        <CardHeader className="py-4">
+      <FullBleed>
+        <InventorySettingsTabs className={fullBleedTabsClass} />
+        <CardHeader className="px-(--table-inset) py-4">
           <CardTitle>Źródła zamówień</CardTitle>
           <CardDescription>
             Z którego magazynu schodzi towar zamówień z danego źródła i czy zamówienie rezerwuje go od razu. Bez rezerwacji towar schodzi ze stanu
@@ -43,9 +43,9 @@ export default function InventorySettingsGeneral({ warehouses, sources }: Props)
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="pl-6">Źródło</TableHead>
+              <TableHead className="pl-(--table-inset)">Źródło</TableHead>
               <TableHead>Magazyn</TableHead>
-              <TableHead className="pr-6 text-right">Rezerwacja</TableHead>
+              <TableHead className="pr-(--table-inset) text-right">Rezerwacja</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -53,7 +53,7 @@ export default function InventorySettingsGeneral({ warehouses, sources }: Props)
               const setting = sources[source.key]
               return (
                 <TableRow key={source.key}>
-                  <TableCell className="pl-6">
+                  <TableCell className="pl-(--table-inset)">
                     <div className="flex items-center gap-3">
                       <div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-lg">
                         <source.icon className="size-4" />
@@ -72,7 +72,7 @@ export default function InventorySettingsGeneral({ warehouses, sources }: Props)
                       onChange={(value) => updateSource(source.key, { warehouse_id: Number(value) })}
                     />
                   </TableCell>
-                  <TableCell className="pr-6 text-right">
+                  <TableCell className="pr-(--table-inset) text-right">
                     <Switch
                       aria-label={`Rezerwacja - ${source.label}`}
                       checked={setting.enabled}
@@ -84,7 +84,7 @@ export default function InventorySettingsGeneral({ warehouses, sources }: Props)
             })}
           </TableBody>
         </Table>
-      </Card>
+      </FullBleed>
     </>
   )
 }

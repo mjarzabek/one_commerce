@@ -3,6 +3,7 @@ import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 
 import { ConfirmDelete } from "@/components/inventory/confirm-button"
+import { FullBleed, fullBleedTabsClass } from "@/components/full-bleed"
 import { InventorySettingsTabs } from "@/components/inventory/inventory-tabs"
 import { NameDialog } from "@/components/inventory/name-dialog"
 import { errorText, type CatalogOption, type FormErrors } from "@/components/inventory/types"
@@ -10,7 +11,6 @@ import { PageBar } from "@/components/page-bar"
 import { RowActions } from "@/components/row-actions"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { Label } from "@/components/ui/label"
@@ -141,23 +141,22 @@ export default function InventorySettingsCatalogs({ catalogs, warehouses, priceG
           </NameDialog>
         }
       />
-      {/* Zakładki w karcie razem z tabelą - jak na liście produktów. */}
-      <Card className="gap-0 py-0">
-        <InventorySettingsTabs className="mt-0 px-2" />
+      <FullBleed>
+        <InventorySettingsTabs className={fullBleedTabsClass} />
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="pl-4">Nazwa</TableHead>
+              <TableHead className="pl-(--table-inset)">Nazwa</TableHead>
               <TableHead>Magazyny</TableHead>
               <TableHead>Grupy cenowe</TableHead>
               <TableHead className="text-right">Produkty</TableHead>
-              <TableHead className="pr-4" />
+              <TableHead className="pr-(--table-inset)" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {catalogs.map((catalog) => (
               <TableRow key={catalog.id}>
-                <TableCell className="pl-4 font-medium">
+                <TableCell className="pl-(--table-inset) font-medium">
                   <Link href={`/inventory?catalog_id=${catalog.id}`}>{catalog.name}</Link>
                 </TableCell>
                 <TableCell>
@@ -179,14 +178,14 @@ export default function InventorySettingsCatalogs({ catalogs, warehouses, priceG
                   </div>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{catalog.products}</TableCell>
-                <TableCell className="pr-4 text-right">
+                <TableCell className="pr-(--table-inset) text-right">
                   <CatalogActions catalog={catalog} canDelete={catalog.products === 0 && catalogs.length > 1} fields={catalogFields} />
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </Card>
+      </FullBleed>
     </>
   )
 }

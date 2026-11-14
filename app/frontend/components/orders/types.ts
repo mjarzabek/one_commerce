@@ -5,7 +5,7 @@ export type OrderStatus = {
   name: string
   color: StatusColor
   default?: boolean
-  group_id?: number | null
+  status_group_id?: number | null
   count?: number
 }
 

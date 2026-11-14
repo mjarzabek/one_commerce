@@ -2,7 +2,7 @@ Rails.application.routes.draw do
   # Health check dla load balancera i Kamal.
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # Trasy pakietów: packs/**/config/routes/*.rb
+  # Trasy domen: config/routes/*.rb
   draw :panel         # logowanie, pulpit (Core)
   draw :orders        # panel obsługi zamówień (Core, przy Live lub MultiChannel)
   draw :inventory     # sekcja „Produkty”: katalogi, magazyny, stany, ceny, zestawy (Core)

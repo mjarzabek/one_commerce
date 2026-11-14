@@ -1,6 +1,0 @@
-enforce_dependencies: true
-enforce_privacy: false
-dependencies:
-  - packs/core/platform
-  - packs/core/accounts
-  - packs/core/licensing

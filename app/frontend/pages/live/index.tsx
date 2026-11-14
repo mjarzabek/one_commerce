@@ -10,8 +10,8 @@ export default function LiveIndex() {
       <ModuleHome
         info={MODULES.live}
         nextSteps={[
-          "Połączenie z Meta (strona FB, konto IG) w packs/core/integrations",
-          "Model live_sessions i claims (rezerwacje z komentarzy) w packs/live",
+          "Połączenie z Meta (strona FB, konto IG) w Integrations",
+          "Model live_sessions i claims (rezerwacje z komentarzy) w Live",
           "Odbiór webhooków live_comments przez inbox i job",
           "Panel prowadzącego na Action Cable",
         ]}

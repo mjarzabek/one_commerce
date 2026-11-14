@@ -18,7 +18,7 @@ export function DataTableToolbar({ id, server, searchLabel, children }: { id: st
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+      <div className="flex flex-wrap items-center gap-2 px-[var(--table-inset,0.75rem)] py-3">
         <div className="relative w-full sm:max-w-sm sm:flex-1">
           <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
           <Input
@@ -35,10 +35,10 @@ export function DataTableToolbar({ id, server, searchLabel, children }: { id: st
 
       {hasFilters &&
         (filtersOpen ? (
-          <FilterPanel schema={filterSchema} values={filters} onApply={(values) => visit(values)} className="rounded-none border-x-0 border-b-0 px-3 pt-5" />
+          <FilterPanel schema={filterSchema} values={filters} onApply={(values) => visit(values)} className="rounded-none border-x-0 border-b-0 px-[var(--table-inset,0.75rem)] pt-5" />
         ) : (
           activeFilterCount(filterSchema, filters) > 0 && (
-            <div className="px-3 pb-3">
+            <div className="px-[var(--table-inset,0.75rem)] pb-3">
               <FilterChips
                 schema={filterSchema}
                 values={filters}

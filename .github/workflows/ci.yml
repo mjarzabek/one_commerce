@@ -30,19 +30,6 @@ jobs:
       - name: RuboCop
         run: bin/rubocop -f github
 
-  boundaries:
-    name: Module boundaries (Packwerk)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ruby/setup-ruby@v1
-        with:
-          bundler-cache: true
-      - name: Validate package graph
-        run: bin/packwerk validate
-      - name: Check references between packs
-        run: bin/packwerk check
-
   frontend:
     runs-on: ubuntu-latest
     steps:

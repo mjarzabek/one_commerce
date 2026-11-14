@@ -16,9 +16,9 @@ import { productColumns } from "@/components/inventory/product-list/columns"
 import type { ListRow, ProductRow, Warehouse } from "@/components/inventory/product-list/types"
 import { StatusBadge } from "@/components/inventory/status-badge"
 import { productsWord, type CatalogOption } from "@/components/inventory/types"
+import { FullBleed, fullBleedTabsClass } from "@/components/full-bleed"
 import { PageBar } from "@/components/page-bar"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 type View = { q: string; catalog_id: number; warehouse_id: number | null; price_group_id: number; sort: string; dir: "asc" | "desc"; per: number }
@@ -81,8 +81,8 @@ export default function InventoryProducts({ products, pagination, filterSchema, 
         }
       />
 
-      <Card className="gap-0 py-0">
-        <InventoryTabs className="mt-0 px-2" />
+      <FullBleed>
+        <InventoryTabs className={fullBleedTabsClass} />
 
         <DataTableToolbar id="inventory-products" server={table} searchLabel="Szukaj po nazwie lub ID">
           {catalogs.length > 1 && (
@@ -144,7 +144,7 @@ export default function InventoryProducts({ products, pagination, filterSchema, 
             )
           }
         />
-      </Card>
+      </FullBleed>
 
       {/* Miejsce na pasek akcji, żeby nie zasłaniał ostatniego wiersza. */}
       {selectedCount > 0 && <div className="h-16" aria-hidden />}

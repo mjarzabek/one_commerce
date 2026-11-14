@@ -7,7 +7,7 @@ Jeden panel, trzy moduły sprzedawane osobno lub razem jako pakiet **ONE**.
 | --- | --- |
 | Backend | Ruby 3.4, Rails 8.1, PostgreSQL 16 |
 | Frontend | Inertia.js 3 (React 19), TypeScript, Vite, Tailwind CSS 4, shadcn/ui na Base UI |
-| Moduły | packs-rails + Packwerk (granice sprawdzane w CI) |
+| Moduły | namespace'y Rubiego w standardowych katalogach `app/` (opis domen: `docs/domains.md`) |
 | Joby, cache, WebSockety | Solid Queue, Solid Cache, Solid Cable (na produkcji; w dev adaptery w pamięci) |
 | Testy | RSpec, FactoryBot, helpery Inertia |
 | Deploy | Docker + Kamal 2 |
@@ -45,26 +45,24 @@ app/
     components/ui/     # shadcn/ui (Base UI) - kod w repo, edytuj śmiało
     lib/modules.ts     # opis modułów (menu, pulpit, ekrany „Dokup”)
   views/layouts/       # jeden layout HTML z tagami Vite
-packs/
-  core/
-    platform/          # klasy bazowe: ApplicationRecord, ApplicationController…
-    accounts/          # konta (tenant), użytkownicy, sesje, tokeny API
-    licensing/         # licencje modułów, pakiet ONE, bramka dostępu
-    panel/             # InertiaController (wspólne propsy), logowanie, pulpit
-    orders/            # panel obsługi zamówień (Live lub MultiChannel)
-    api/               # publiczne REST API /api/v1
-    inventory/         # sekcja „Produkty”: katalogi, produkty, ceny, magazyny, stany, rezerwacje
-    customers/ payments/ shipping/ invoicing/ integrations/
-  live/                # [Nazwa] Live
-  multichannel/        # [Nazwa] MultiChannel
-  chat/                # [Nazwa] Chat
+  models/              # płasko: Account, User, Current, ApplicationRecord…
+    inventory.rb       # moduł domeny: table_name_prefix + operacje (np. Inventory.reserve!)
+    inventory/         # Inventory::Product, Inventory::Warehouse… (sekcja „Produkty”)
+    orders.rb, orders/ # panel obsługi zamówień (Live lub MultiChannel)
+    customers.rb, customers/
+    licensing.rb       # licencje modułów, pakiet ONE
+  controllers/
+    concerns/          # Accounts::Authentication, Licensing::RequiresModule
+    inventory/ orders/ live/ multichannel/ chat/
+    api/v1/            # publiczne REST API /api/v1
+config/routes/         # trasy domen: inventory.rb, orders.rb, live.rb…
 ```
 
-Każdy pakiet ma `package.yml` z listą zależności. Kod dostępny dla innych pakietów leży w `app/public/`; reszta jest prywatna (`enforce_privacy`). Pakiety modułów zależą tylko od Core, nigdy od siebie nawzajem.
+Domena = namespace w tych samych miejscach: `app/models/<domena>.rb`, `app/models/<domena>/`, `app/controllers/<domena>/`, `config/routes/<domena>.rb`, `spec/…/<domena>/`. Granice trzymamy konwencją: inne domeny zmieniają dane domeny przez metody jej modułu (np. `Inventory.reserve!`), a nie bezpośrednio przez jej modele. Moduły płatne (Live, MultiChannel, Chat) zależą tylko od Core, nigdy od siebie nawzajem.
 
 ## Licencje modułów
 
-Jedno źródło prawdy: `Licensing` (`packs/core/licensing/app/public/licensing.rb`).
+Jedno źródło prawdy: `Licensing` (`app/models/licensing.rb`).
 
 ```ruby
 Licensing.enabled?(account, :live)    # czy moduł jest aktywny
@@ -87,11 +85,11 @@ Frontend dostaje stan licencji we wspólnych propsach (`modules.enabled`, `modul
 
 ## Dodawanie funkcji do modułu
 
-1. Model i logika w pakiecie modułu, np. `packs/live/app/models/live/session.rb`.
-2. Jeśli inny pakiet ma z tego korzystać - metoda w `packs/live/app/public/live.rb`.
-3. Kontroler dziedziczy z `Live::BaseController`, trasa w `packs/live/config/routes/live.rb`.
+1. Model w namespace modułu, np. `app/models/live/session.rb` (`Live::Session`).
+2. Operacja, z której korzystają inne domeny - metoda w `app/models/live.rb` (albo serwis w `app/services/live/`).
+3. Kontroler dziedziczy z `Live::BaseController`, trasa w `config/routes/live.rb`.
 4. Strona React w `app/frontend/pages/live/…tsx`, renderowana przez `render inertia: "live/…"`.
-5. Testy obok kodu: `packs/live/spec/…`.
+5. Testy w `spec/` w tej samej strukturze, np. `spec/models/live/…`, `spec/requests/live/…`.
 
 Nowe komponenty shadcn/ui: konfiguracja jest w `components.json` (styl `base-nova`), więc `npx shadcn@latest add dialog` doda komponent w wersji Base UI do `app/frontend/components/ui`.
 
@@ -116,8 +114,6 @@ Listy są stronicowane kursorem: `?limit=50&cursor=<meta.next_cursor>`. Endpoint
 
 ```bash
 bundle exec rspec           # testy (w tym bramka licencji i API)
-bin/packwerk validate       # poprawność grafu pakietów
-bin/packwerk check          # odwołania między pakietami
 npm run check               # TypeScript
 bin/rubocop                 # styl Ruby
 bin/ci                      # wszystko naraz
